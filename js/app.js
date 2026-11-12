@@ -1,7 +1,7 @@
 // Fogwright Forge: the builder screens.
 (function () {
   "use strict";
-  const VERSION = "v17";
+  const VERSION = "v18";
   const R = window.Rules, SRD = window.SRD, X = window.EXTRA;
   const KEY = "forge-chars-v1", PREF = "forge-prefs-v1";
 
@@ -320,7 +320,7 @@
         h += '<div class="row" style="margin-top:8px"><select id="addPlan"><option value="">' + T("Add a plan") + "…</option>" +
           pl.tiers.map(t => '<optgroup label="' + attr(T("Artificer level") + " " + t + "+") + '">' + A.plans[t].filter(([k, , , gen]) => gen || !have.includes(k)).map(([k, n, att]) =>
             '<option value="' + k + '">' + esc(n) + (att === "Yes" ? " · " + T("Attunement") : "") + (A.recommendedPlans.includes(k) ? " ★" : "") + "</option>" +
-            (A.uaItems || []).filter(u => u[2] === k && !pl.chosen.some(p => p.item === u[0])).map(u => '<option value="' + k + "|" + attr(u[0]) + '">\u00a0\u00a0↳ ' + esc(u[0]) + " (UA)" + (u[1] !== "No" ? " · " + T("Attunement") : "") + "</option>").join("")).join("") + "</optgroup>").join("") +
+            (A.uaItems || []).filter(u => u[2] === k && !pl.chosen.some(p => p.item === u[0])).map(u => '<option value="' + k + "|" + attr(u[0]) + '">\u00a0\u00a0↳ ' + esc(u[0]) + " (" + (u[4] || "UA") + ")" + (u[1] !== "No" ? " · " + T("Attunement") : "") + "</option>").join("")).join("") + "</optgroup>").join("") +
           '</select><button data-act="addPlan">+</button></div><p class="small muted">★ ' + T("recommended in the rules") + "</p>";
       }
       h += "</div>";

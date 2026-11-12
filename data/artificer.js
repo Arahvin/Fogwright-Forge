@@ -75,7 +75,7 @@ window.ARTIFICER = (function () {
       14: [["rare", "Rare armor, ring, wand, weapon or wondrous item (not cursed)", "Varies", true]]
     },
     // The UA's own magic items (Tasha's infusions turned into items). Each one is made through an open plan.
-    // [name, attunement, open plan it belongs to, short summary in our words]
+    // [name, attunement, open plan it belongs to, short summary in our words, source (default UA)]
     uaItems: [
       ["Repeating Shot", "Yes", "uncommon-awwp", "Weapon with the Ammunition property: +1 to ranged attack and damage rolls, ignores Loading, and makes its own ammunition, which vanishes after the shot."],
       ["Repulsion Shield", "No", "uncommon-awwp", "Shield: +1 AC on top of the shield. 4 charges (1d4 back at dawn): Reaction when hit by a melee attack, push the attacker up to 15 ft."],
@@ -84,6 +84,9 @@ window.ARTIFICER = (function () {
       ["Helm of Awareness", "Yes", "uncommon-rw", "Advantage on Initiative rolls."],
       ["Mind Sharpener", "Yes", "uncommon-rw", "Ring. 4 charges (1d4 back at dawn): when you fail a Constitution save to keep Concentration, use a Reaction and a charge to succeed instead."],
       ["Spell-Refueling Ring", "Yes (spellcaster)", "uncommon-rw", "Bonus Action: regain one spent spell slot of level 3 or lower. Once per dawn."],
+      ["Spellwrought Tattoo (cantrip or level 1 spell)", "No", "common", "A tattoo that holds one spell. You cast it once without components, then the tattoo fades.", "DMG"],
+      ["Spellwrought Tattoo (level 2 spell)", "No", "uncommon-rw", "A tattoo that holds one spell. You cast it once without components, then the tattoo fades.", "DMG"],
+      ["Spellwrought Tattoo (level 3-5 spell)", "No", "rare", "A tattoo that holds one spell. You cast it once without components, then the tattoo fades.", "DMG"],
       ["Radiant Weapon", "Yes (spellcaster)", "rare", "+1 to attack and damage rolls. Bonus Action: bright light 30 ft (dim 30 more), or put it out. 4 charges (1d4 back at dawn): Reaction when hit by an attack, the attacker makes a DC 15 Con save or is Blinded until the end of its next turn."]
     ],
     recommendedPlans: ["bag-of-holding", "cap-of-water-breathing", "sending-stones", "wand-of-the-war-mage-1"],
