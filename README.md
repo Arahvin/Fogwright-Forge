@@ -9,7 +9,7 @@ A character builder for D&D 2024 (SRD 5.2) in the Ninth World, in the spirit of 
 - **House rules:** shins for money, the cypher limit (PB + 1), GM intrusions, and the Glaive / Nano / Jack / Tender labels.
 - **Export:** the Sheet tab's *Export for Fogwright VTT* writes a `.json` that the VTT imports as-is (GM: Sheets tab → Import). *Save Forge file* keeps the full character, to back up or move to another computer.
 
-Characters are kept in the browser (localStorage). The version is in the page footer.
+Opened as a file or from GitHub Pages, characters are kept in the browser (localStorage). Served from the GM's PC (below), they are kept on that PC with player accounts. The version is in the page footer.
 
 ## Serve it from your PC (like the VTT)
 
@@ -20,6 +20,12 @@ New-NetFirewallRule -DisplayName "Fogwright Forge (Hamachi)" -Direction Inbound 
 ```
 
 PT: faz duplo clique em `start.bat`; os jogadores abrem `http://<IP do Hamachi>:8766/`.
+
+### Accounts
+
+When served this way, everyone signs in. The GM signs in with the name `GM` and the GM key shown in the server window (stored in `forge-data/config.json`). On the **Players** page the GM adds each player with a name and password, and can reset a password by saving the same name again. A player sees only their own characters; the GM sees all of them and can move a character to another player with the **Owner** list. Players can change their own password.
+
+Characters are saved in `forge-data/characters/`, one `.json` file each. Back up the `forge-data` folder. It is never served to the browser and is not in git. Characters made earlier in a browser show up with a button to send them to the account.
 
 ## PT
 

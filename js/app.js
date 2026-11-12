@@ -1,7 +1,7 @@
 // Fogwright Forge: the builder screens.
 (function () {
   "use strict";
-  const VERSION = "v11";
+  const VERSION = "v12";
   const R = window.Rules, SRD = window.SRD, X = window.EXTRA;
   const KEY = "forge-chars-v1", PREF = "forge-prefs-v1";
 
@@ -14,7 +14,36 @@
   let chars = store.get(KEY, []);
   const prefs = Object.assign({ lang: "en", theme: "" }, store.get(PREF, {}));
   let cur = null, tab = "class", armed = "", search = {};
-  const save = () => { if (cur) cur.updated = Date.now(); store.set(KEY, chars); };
+
+  // ---------------------------------------------------------------- accounts (only when served by serve.py)
+  // online: characters live on the GM's PC; each player sees their own, the GM sees all.
+  // offline (file:// or GitHub Pages): characters stay in this browser, as before.
+  const TOKEN = "forge-token-v1";
+  let online = false, me = null, page = "", owners = {}, accounts = [], loginErr = "", pending = {}, saveTimer = 0, unsaved = false;
+  async function api(method, path, body) {
+    const r = await fetch("api/" + path, { method, headers: Object.assign({ "Content-Type": "application/json" }, store.get(TOKEN, "") ? { Authorization: "Bearer " + store.get(TOKEN, "") } : {}), body: body ? JSON.stringify(body) : undefined });
+    const d = await r.json().catch(() => ({}));
+    if (r.status === 401 && path !== "login" && path !== "password") { me = null; render(); }
+    if (!r.ok) throw new Error(d.error || "Server error");
+    return d;
+  }
+  function push(c, owner) {
+    return api("PUT", "chars/" + c.id, owner ? { character: c, owner } : { character: c })
+      .then(d => { owners[c.id] = d.owner; delete pending[c.id]; if (!Object.keys(pending).length && unsaved) { unsaved = false; render(); } })
+      .catch(err => { if (!unsaved) { unsaved = true; render(); } toast(T("Not saved") + ": " + err.message); });
+  }
+  function flush() { clearTimeout(saveTimer); saveTimer = 0; Object.values(pending).forEach(c => push(c)); }
+  const save = () => {
+    if (cur) cur.updated = Date.now();
+    if (!online) { store.set(KEY, chars); return; }
+    if (cur) { pending[cur.id] = cur; clearTimeout(saveTimer); saveTimer = setTimeout(flush, 600); }
+  };
+  async function loadChars() {
+    const d = await api("GET", "chars");
+    owners = {}; chars = d.chars.map(r => { owners[r.character.id] = r.owner; return fixUp(r.character); });
+    if (me && me.gm) accounts = (await api("GET", "accounts")).accounts;
+  }
+  window.addEventListener("beforeunload", () => { if (saveTimer) flush(); });
   const savePrefs = () => store.set(PREF, prefs);
 
   // ---------------------------------------------------------------- helpers
@@ -479,16 +508,49 @@
   function home() {
     let h = '<div class="panel"><div class="row"><h2 style="margin:0">' + T("Characters") + '</h2><div class="spacer"></div><button class="primary" data-act="new">' + T("New character") + '</button>' +
       '<label class="row" style="gap:6px"><button data-act="importPick">' + T("Import a Forge file") + '</button><input type="file" id="importFile" accept=".json,application/json" hidden></label></div>' +
-      '<p class="small muted">' + esc(T("homeHelp")) + "</p>";
+      '<p class="small muted">' + esc(T(online ? (me && me.gm ? "homeHelpGM" : "homeHelpOnline") : "homeHelp")) + "</p>";
+    const local = online ? store.get(KEY, []) : [];
+    if (local.length) h += '<div class="okbox row wrap">' + esc(T("localChars").replace("{n}", local.length)) + '<div class="spacer"></div><button class="primary" data-act="uploadLocal">' + T("Send them to my account") + "</button></div>";
     if (!chars.length) h += '<p class="muted">' + T("No characters yet.") + "</p>";
     h += '<div class="list">' + chars.slice().sort((a, b) => b.updated - a.updated).map(c => {
       const s = R.compute(c);
-      return '<div class="charrow">' + glyph(c.sp.id) + '<div><div class="t">' + esc(s.name) + '</div><div class="muted small">' + esc([s.clsText, s.speciesText, s.bgText].filter(Boolean).join(" · ") || "—") + (c.player ? " · " + esc(c.player) : "") + "</div></div>" +
+      return '<div class="charrow">' + glyph(c.sp.id) + '<div><div class="t">' + esc(s.name) + '</div><div class="muted small">' + esc([s.clsText, s.speciesText, s.bgText].filter(Boolean).join(" · ") || "—") + (c.player ? " · " + esc(c.player) : "") + "</div></div>" + ownerPick(c) +
         '<div class="spacer"></div><button data-act="open" data-v="' + c.id + '">' + T("Open") + '</button><button class="danger" data-act="del" data-v="' + c.id + '">' + (armed === "del:" + c.id ? T("Click again to delete") : T("Delete")) + "</button></div>";
     }).join("") + "</div></div>";
     h += '<div class="panel small muted"><b>Fogwright Forge</b> builds D&amp;D 2024 characters for the Ninth World: SRD 5.2 classes and spells, the Ninth World species and the Toolkit house rules. ' +
       "Export a character for Fogwright VTT from its Sheet tab.</div>";
     return h;
+  }
+
+  function login() {
+    return '<div class="panel login"><h2>' + T("Sign in") + '</h2><p class="small muted">' + esc(T("loginHelp")) + "</p>" +
+      '<form id="loginForm"><label>' + T("Name") + '<input id="lgName" autocomplete="username" required></label>' +
+      '<label>' + T("Password") + '<input id="lgPw" type="password" autocomplete="current-password" required></label>' +
+      (loginErr ? '<div class="warn">' + esc(loginErr) + "</div>" : "") + '<button class="primary" type="submit">' + T("Sign in") + "</button></form></div>";
+  }
+
+  function players() {
+    let h = '<div class="panel"><div class="row"><h2 style="margin:0">' + T("Players") + '</h2><div class="spacer"></div><button data-act="home">' + T("Characters") + "</button></div>" +
+      '<p class="small muted">' + esc(T("playersHelp")) + "</p>" +
+      '<div class="list">' + accounts.map(a => '<div class="charrow"><div><div class="t">' + esc(a.name) + '</div><div class="muted small">' + a.chars + " " + T(a.chars === 1 ? "character" : "characters") + "</div></div>" +
+        '<div class="spacer"></div><button class="danger" data-act="delAccount" data-v="' + attr(a.name) + '">' + (armed === "acc:" + a.name ? T("Click again to delete") : T("Delete")) + "</button></div>").join("") + "</div>" +
+      (accounts.length ? "" : '<p class="muted">' + T("No players yet.") + "</p>") +
+      '<h3>' + T("Add a player or reset a password") + '</h3><form id="accForm" class="row wrap"><input id="accName" placeholder="' + attr(T("Name")) + '" required>' +
+      '<input id="accPw" placeholder="' + attr(T("Password")) + '" required minlength="4"><button class="primary" type="submit">' + T("Save") + "</button></form></div>";
+    return h;
+  }
+
+  function password() {
+    return '<div class="panel login"><h2>' + T("Change password") + '</h2><form id="pwForm"><label>' + T("Current password") + '<input id="pwOld" type="password" autocomplete="current-password" required></label>' +
+      '<label>' + T("New password") + '<input id="pwNew" type="password" autocomplete="new-password" required minlength="4"></label>' +
+      (loginErr ? '<div class="warn">' + esc(loginErr) + "</div>" : "") +
+      '<div class="row"><button data-act="home" type="button">' + T("Back") + '</button><button class="primary" type="submit">' + T("Save") + "</button></div></form></div>";
+  }
+
+  function ownerPick(c) {
+    if (!online || !me || !me.gm) return "";
+    const o = owners[c.id] || "GM";
+    return '<label class="small muted row" style="gap:4px">' + T("Owner") + ' <select data-owner="' + c.id + '">' + ["GM"].concat(accounts.map(a => a.name)).map(n => '<option' + (n === o ? " selected" : "") + ">" + esc(n) + "</option>").join("") + "</select></label>";
   }
 
   function builder() {
@@ -507,9 +569,12 @@
     const y = window.scrollY;
     $("#app").innerHTML = '<header class="top"><span class="brand" data-act="home">⚒ Fogwright Forge</span>' +
       (cur ? '<span class="who">' + esc(R.fullName(cur)) + "</span>" : "") + '<div class="spacer"></div>' +
+      (unsaved ? '<span class="warn small">' + T("Not saved") + "</span>" : "") +
       (cur ? '<button data-act="home">' + T("Characters") + "</button>" : "") +
+      (online && me ? (me.gm ? '<button data-act="players">' + T("Players") + "</button>" : '<button data-act="password">' + T("Password") + "</button>") +
+        '<button data-act="logout" title="' + attr(T("Sign out")) + '">' + esc(me.name) + " ⏻</button>" : "") +
       '<button data-act="lang" title="Language / Língua">' + (prefs.lang === "pt" ? "EN" : "PT") + '</button><button data-act="theme" title="' + attr(T("Theme")) + '">◐</button></header>' +
-      "<main>" + (cur ? builder() : home()) + "</main>" +
+      "<main>" + (online && !me ? login() : page === "players" ? players() : page === "password" ? password() : cur ? builder() : home()) + "</main>" +
       "<footer>Fogwright Forge " + VERSION + " · Rules: D&amp;D System Reference Document 5.2.1 by Wizards of the Coast LLC, CC BY 4.0 · Ninth World species and house rules: our campaign.</footer>";
     window.scrollTo(0, y);
   }
@@ -519,12 +584,26 @@
   function resetPaths(list) { (list || "").split(",").filter(Boolean).forEach(p => setPath(cur, p, Array.isArray(getPath(cur, p)) ? [] : (typeof getPath(cur, p) === "object" && getPath(cur, p) ? {} : ""))); }
 
   const acts = {
-    home() { cur = null; armed = ""; render(); },
-    new() { const c = R.blank(); chars.push(c); cur = c; tab = "class"; save(); render(); },
+    home() { if (saveTimer) flush(); cur = null; armed = ""; page = ""; loginErr = ""; render(); },
+    new() { const c = R.blank(); if (online && me && !me.gm) c.player = me.name; chars.push(c); cur = c; tab = "class"; save(); render(); },
+    players() { if (saveTimer) flush(); cur = null; page = "players"; armed = ""; render(); },
+    password() { if (saveTimer) flush(); cur = null; page = "password"; loginErr = ""; render(); },
+    logout() { if (saveTimer) flush(); api("POST", "logout").catch(() => {}).then(() => { store.set(TOKEN, ""); me = null; cur = null; page = ""; chars = []; render(); }); },
+    delAccount(v) {
+      if (armed !== "acc:" + v) { armed = "acc:" + v; render(); return; }
+      armed = ""; api("DELETE", "accounts/" + encodeURIComponent(v)).then(loadChars).then(render).catch(err => toast(err.message));
+    },
+    uploadLocal() {
+      const local = store.get(KEY, []).map(fixUp);
+      Promise.all(local.map(c => { if (chars.some(x => x.id === c.id)) c.id = "c" + Math.random().toString(36).slice(2, 10); return api("PUT", "chars/" + c.id, { character: c }); }))
+        .then(() => { store.set(KEY, []); return loadChars(); }).then(() => { render(); toast(T("Done")); }).catch(err => toast(err.message));
+    },
     open(v) { cur = chars.find(c => c.id === v) || null; tab = "class"; render(); },
     del(v) {
       if (armed !== "del:" + v) { armed = "del:" + v; render(); return; }
-      chars = chars.filter(c => c.id !== v); armed = ""; save(); render();
+      chars = chars.filter(c => c.id !== v); armed = "";
+      if (online) { delete pending[v]; api("DELETE", "chars/" + v).catch(err => toast(err.message)); } else save();
+      render();
     },
     lang() { prefs.lang = prefs.lang === "pt" ? "en" : "pt"; savePrefs(); render(); },
     theme() { const dark = matchMedia("(prefers-color-scheme: dark)").matches; const now = prefs.theme || (dark ? "dark" : "light"); prefs.theme = now === "dark" ? "light" : "dark"; savePrefs(); render(); },
@@ -606,18 +685,40 @@
           const c = d && d.fogwright_forge ? d.character : null;
           if (!c || !c.classes) throw new Error("bad");
           c.id = "c" + Math.random().toString(36).slice(2, 10);
-          chars.push(fixUp(c)); save(); render(); toast(T("Imported"));
+          if (online && me && !me.gm && !c.player) c.player = me.name;
+          chars.push(fixUp(c)); cur = c; save(); cur = null; render(); toast(T("Imported"));
         } catch (err) { toast(T("That file is not a Forge character.")); }
       });
       return;
     }
+    if (t.dataset.owner) { const c = chars.find(x => x.id === t.dataset.owner); if (c) push(c, t.value).then(render); return; }
     if (t.dataset.multi) { toggleMulti(t.dataset.multi, t.dataset.v, +t.dataset.max); return; }
     if (t.dataset.one) { setOne(t.dataset.one, t.dataset.v, t.dataset.reset); return; }
     if (t.dataset.check) { setPath(cur, t.dataset.check, t.checked); save(); render(); return; }
     if (t.dataset.bio) { cur.sp.bio = cur.sp.bio || { rolled: {}, pick: {}, custom: "" }; cur.sp.bio.pick[t.dataset.bio] = t.value === "" ? "" : +t.value; if (t.dataset.bio === "core") syncCore(); save(); render(); return; }
     if (t.dataset.assign) { cur.ab.assign[t.dataset.assign] = t.value === "" ? "" : +t.value; save(); render(); return; }
     if (t.dataset.roll !== undefined) { const v = parseInt(t.value, 10); cur.ab.rolled[+t.dataset.roll] = isNaN(v) ? undefined : Math.max(3, Math.min(18, v)); cur.ab.rolled = Array.from({ length: 6 }, (_, i) => cur.ab.rolled[i]).filter(x => x !== undefined && x !== null); save(); render(); return; }
-    if (t.dataset.set) { setPath(cur, t.dataset.set, t.dataset.num ? Math.max(0, parseInt(t.value, 10) || 0) : t.value); save(); render(); }
+    if (t.dataset.set) { setPath(cur, t.dataset.set, t.dataset.num ? Math.max(0, parseInt(t.value, 10) || 0) : t.value); save(); if (pointerDown) deferRender = true; else render(); }
+  });
+  // A text box loses focus when a button is pressed; re-drawing the page then would swallow that click,
+  // so wait until the pointer is released.
+  let pointerDown = false, deferRender = false;
+  document.addEventListener("pointerdown", () => { pointerDown = true; }, true);
+  document.addEventListener("pointerup", () => { pointerDown = false; if (deferRender) setTimeout(() => { deferRender = false; render(); }, 0); }, true);
+  document.addEventListener("submit", e => {
+    e.preventDefault();
+    const id = e.target.id;
+    if (id === "loginForm") {
+      api("POST", "login", { name: $("#lgName").value, password: $("#lgPw").value })
+        .then(d => { store.set(TOKEN, d.token); me = { name: d.name, gm: d.gm }; loginErr = ""; return loadChars(); })
+        .then(render).catch(err => { loginErr = err.message; render(); });
+    } else if (id === "accForm") {
+      api("POST", "accounts", { name: $("#accName").value, password: $("#accPw").value })
+        .then(loadChars).then(() => { render(); toast(T("Saved")); }).catch(err => toast(err.message));
+    } else if (id === "pwForm") {
+      api("POST", "password", { old: $("#pwOld").value, new: $("#pwNew").value })
+        .then(() => { page = ""; loginErr = ""; render(); toast(T("Saved")); }).catch(err => { loginErr = err.message; render(); });
+    }
   });
   document.addEventListener("input", e => {
     const t = e.target;
@@ -640,6 +741,19 @@
     save(); render();
   }
 
-  render();
+  async function boot() {
+    if (location.protocol.startsWith("http")) {
+      try {
+        const r = await fetch("api/me", { headers: store.get(TOKEN, "") ? { Authorization: "Bearer " + store.get(TOKEN, "") } : {} });
+        const d = r.ok ? await r.json() : null;
+        if (d && "name" in d) {
+          online = true; chars = [];
+          if (d.name) { me = { name: d.name, gm: d.gm }; await loadChars(); }
+        }
+      } catch (err) { /* no server: offline mode */ }
+    }
+    render();
+  }
+  boot();
   window.Forge = { VERSION, get cur() { return cur; }, set cur(c) { cur = c; }, chars: () => chars, render, acts };
 })();

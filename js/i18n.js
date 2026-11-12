@@ -7,7 +7,12 @@ window.I18N = {
     "vttHelp": "In Fogwright VTT, the GM opens the Sheets tab, presses Import and picks this .json file. The sheet arrives as it is here, owned by the player named in \"Player\".",
     "coreHelp": "The Life Core is the rules side of your bionic core. Choosing a core below picks its Life Core for you; you can still choose another.",
     "coreDiffers": "Your core suggests {x}.",
-    "homeHelp": "Characters are kept in this browser. Use \"Save Forge file\" to keep a copy or move to another computer."
+    "homeHelp": "Characters are kept in this browser. Use \"Save Forge file\" to keep a copy or move to another computer.",
+    "homeHelpOnline": "Your characters are saved on the GM's computer. Only you and the GM can see them.",
+    "homeHelpGM": "You see every player's characters. The Owner list moves a character to another player.",
+    "loginHelp": "Use the name and password the GM gave you.",
+    "playersHelp": "Each player signs in with the name and password you set here, and sees only their own characters. You see everyone's. Saving an existing name gives it the new password.",
+    "localChars": "{n} character(s) are saved only in this browser."
   },
   pt: {
     "Characters": "Personagens", "New character": "Nova personagem", "Import a Forge file": "Importar ficheiro do Forge",
@@ -52,6 +57,16 @@ window.I18N = {
     "Your own graft": "O teu enxerto", "Suggested Life Core": "Núcleo Vital sugerido",
     "bioHelp": "Rola cada passo uma vez (ou escreve o que rolaste à mesa). Depois podes trocar UM resultado por qualquer outro da mesma tabela. O Mestre aprova o conjunto final.",
     "bioSwaps": "Mudaste mais de um resultado rolado: a regra só deixa trocar um (o Mestre decide).",
+    "homeHelpOnline": "As tuas personagens ficam guardadas no computador do Mestre. Só tu e o Mestre as podem ver.",
+    "homeHelpGM": "Vês as personagens de todos os jogadores. A lista Dono passa uma personagem para outro jogador.",
+    "loginHelp": "Usa o nome e a palavra-passe que o Mestre te deu.",
+    "playersHelp": "Cada jogador entra com o nome e a palavra-passe que defines aqui e só vê as suas personagens. Tu vês as de todos. Guardar um nome que já existe dá-lhe a nova palavra-passe.",
+    "localChars": "Há {n} personagem(ns) guardada(s) só neste navegador.",
+    "Sign in": "Entrar", "Sign out": "Sair", "Password": "Palavra-passe", "Players": "Jogadores", "Owner": "Dono",
+    "Change password": "Mudar a palavra-passe", "Current password": "Palavra-passe atual", "New password": "Palavra-passe nova",
+    "Save": "Guardar", "Not saved": "Não guardado", "No players yet.": "Ainda não há jogadores.",
+    "Add a player or reset a password": "Adicionar jogador ou mudar a palavra-passe", "character": "personagem", "characters": "personagens",
+    "Send them to my account": "Enviar para a minha conta",
     "Total": "Total", "Recommended": "Recomendado", "or": "ou", "shins": "shins"
   }
 };
