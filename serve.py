@@ -6,7 +6,8 @@ Players open http://<your Hamachi IP>:8766/ in their browser. Only this PC (127.
 addresses (25.x) are let in.
 
 Accounts: the GM signs in with the name "GM" and the GM key printed when the server starts
-(kept in forge-data/config.json). The GM creates the players' accounts on the Players page.
+(kept in forge-data/config.json). Players create their own account on the sign-in page;
+the GM can also add them, reset passwords and delete accounts on the Players page.
 Each player sees only their own characters; the GM sees everyone's.
 Characters are saved as files in forge-data/characters/, one .json each. Back up that folder.
 """
@@ -207,6 +208,27 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             SESSIONS[tok] = {"name": name, "exp": time.time() + SESSION_DAYS * 86400}
             _write(SESSIONS_FILE, SESSIONS)
             return self.reply(200, {"token": tok, "name": name, "gm": name == GM})
+
+        if head == "signup" and m == "POST":  # players make their own account
+            ip = self.client_address[0]
+            n, last = FAILS.get("signup:" + ip, [0, 0])
+            if n >= 10 and time.time() - last < 600:
+                return self.reply(429, {"error": "Too many new accounts. Wait a few minutes."})
+            d = self.body()
+            name = str(d.get("name", "")).strip()
+            pw = str(d.get("password", ""))
+            if not re.match(r"^[\w .'-]{1,32}$", name) or name.lower() == GM.lower():
+                return self.reply(400, {"error": "Use a name of up to 32 letters or numbers."})
+            if name.lower() in CFG["accounts"]:
+                return self.reply(409, {"error": "That name is taken. Pick another, or ask the GM to reset its password."})
+            if len(pw) < 4:
+                return self.reply(400, {"error": "Use a password of at least 4 characters."})
+            set_password(name, pw)
+            FAILS["signup:" + ip] = [n + 1, time.time()]
+            tok = secrets.token_urlsafe(24)
+            SESSIONS[tok] = {"name": name, "exp": time.time() + SESSION_DAYS * 86400}
+            _write(SESSIONS_FILE, SESSIONS)
+            return self.reply(200, {"token": tok, "name": name, "gm": False})
 
         user = self.user()
         if head == "me" and m == "GET":

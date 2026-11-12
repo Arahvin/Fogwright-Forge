@@ -1,7 +1,7 @@
 // Fogwright Forge: the builder screens.
 (function () {
   "use strict";
-  const VERSION = "v12";
+  const VERSION = "v13";
   const R = window.Rules, SRD = window.SRD, X = window.EXTRA;
   const KEY = "forge-chars-v1", PREF = "forge-prefs-v1";
 
@@ -19,7 +19,7 @@
   // online: characters live on the GM's PC; each player sees their own, the GM sees all.
   // offline (file:// or GitHub Pages): characters stay in this browser, as before.
   const TOKEN = "forge-token-v1";
-  let online = false, me = null, page = "", owners = {}, accounts = [], loginErr = "", pending = {}, saveTimer = 0, unsaved = false;
+  let online = false, me = null, page = "", owners = {}, accounts = [], loginErr = "", signup = false, pending = {}, saveTimer = 0, unsaved = false;
   async function api(method, path, body) {
     const r = await fetch("api/" + path, { method, headers: Object.assign({ "Content-Type": "application/json" }, store.get(TOKEN, "") ? { Authorization: "Bearer " + store.get(TOKEN, "") } : {}), body: body ? JSON.stringify(body) : undefined });
     const d = await r.json().catch(() => ({}));
@@ -523,10 +523,12 @@
   }
 
   function login() {
-    return '<div class="panel login"><h2>' + T("Sign in") + '</h2><p class="small muted">' + esc(T("loginHelp")) + "</p>" +
+    return '<div class="panel login"><h2>' + T(signup ? "Create an account" : "Sign in") + '</h2><p class="small muted">' + esc(T(signup ? "signupHelp" : "loginHelp")) + "</p>" +
       '<form id="loginForm"><label>' + T("Name") + '<input id="lgName" autocomplete="username" required></label>' +
-      '<label>' + T("Password") + '<input id="lgPw" type="password" autocomplete="current-password" required></label>' +
-      (loginErr ? '<div class="warn">' + esc(loginErr) + "</div>" : "") + '<button class="primary" type="submit">' + T("Sign in") + "</button></form></div>";
+      '<label>' + T("Password") + '<input id="lgPw" type="password" autocomplete="' + (signup ? "new-password" : "current-password") + '" required' + (signup ? ' minlength="4"' : "") + "></label>" +
+      (signup ? '<label>' + T("Repeat the password") + '<input id="lgPw2" type="password" autocomplete="new-password" required></label>' : "") +
+      (loginErr ? '<div class="warn">' + esc(loginErr) + "</div>" : "") + '<button class="primary" type="submit">' + T(signup ? "Create an account" : "Sign in") + "</button>" +
+      '<button type="button" data-act="signupToggle">' + T(signup ? "I already have an account" : "Create an account") + "</button></form></div>";
   }
 
   function players() {
@@ -586,6 +588,7 @@
   const acts = {
     home() { if (saveTimer) flush(); cur = null; armed = ""; page = ""; loginErr = ""; render(); },
     new() { const c = R.blank(); if (online && me && !me.gm) c.player = me.name; chars.push(c); cur = c; tab = "class"; save(); render(); },
+    signupToggle() { signup = !signup; loginErr = ""; render(); },
     players() { if (saveTimer) flush(); cur = null; page = "players"; armed = ""; render(); },
     password() { if (saveTimer) flush(); cur = null; page = "password"; loginErr = ""; render(); },
     logout() { if (saveTimer) flush(); api("POST", "logout").catch(() => {}).then(() => { store.set(TOKEN, ""); me = null; cur = null; page = ""; chars = []; render(); }); },
@@ -709,8 +712,9 @@
     e.preventDefault();
     const id = e.target.id;
     if (id === "loginForm") {
-      api("POST", "login", { name: $("#lgName").value, password: $("#lgPw").value })
-        .then(d => { store.set(TOKEN, d.token); me = { name: d.name, gm: d.gm }; loginErr = ""; return loadChars(); })
+      if (signup && $("#lgPw").value !== $("#lgPw2").value) { loginErr = T("The passwords don't match."); render(); return; }
+      api("POST", signup ? "signup" : "login", { name: $("#lgName").value, password: $("#lgPw").value })
+        .then(d => { store.set(TOKEN, d.token); me = { name: d.name, gm: d.gm }; loginErr = ""; signup = false; return loadChars(); })
         .then(render).catch(err => { loginErr = err.message; render(); });
     } else if (id === "accForm") {
       api("POST", "accounts", { name: $("#accName").value, password: $("#accPw").value })

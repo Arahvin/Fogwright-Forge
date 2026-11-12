@@ -23,7 +23,7 @@ PT: faz duplo clique em `start.bat`; os jogadores abrem `http://<IP do Hamachi>:
 
 ### Accounts
 
-When served this way, everyone signs in. The GM signs in with the name `GM` and the GM key shown in the server window (stored in `forge-data/config.json`). On the **Players** page the GM adds each player with a name and password, and can reset a password by saving the same name again. A player sees only their own characters; the GM sees all of them and can move a character to another player with the **Owner** list. Players can change their own password.
+When served this way, everyone signs in. The GM signs in with the name `GM` and the GM key shown in the server window (stored in `forge-data/config.json`). Players create their own account on the sign-in page (a name that is already taken is refused). On the **Players** page the GM can also add players, delete accounts, and reset a password by saving the same name again. A player sees only their own characters; the GM sees all of them and can move a character to another player with the **Owner** list. Players can change their own password.
 
 Characters are saved in `forge-data/characters/`, one `.json` file each. Back up the `forge-data` folder. It is never served to the browser and is not in git. Characters made earlier in a browser show up with a button to send them to the account.
 
