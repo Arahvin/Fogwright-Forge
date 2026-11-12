@@ -1,7 +1,7 @@
 // Fogwright Forge: the builder screens.
 (function () {
   "use strict";
-  const VERSION = "v16";
+  const VERSION = "v17";
   const R = window.Rules, SRD = window.SRD, X = window.EXTRA;
   const KEY = "forge-chars-v1", PREF = "forge-prefs-v1";
 
@@ -312,13 +312,15 @@
         esc(T("plansHelp").replace("{items}", pl.items).replace("{att}", pl.attune)) + "</p>";
       h += pl.chosen.map((p, i) => '<div class="row wrap" style="margin:4px 0"><b>' + esc(p.gen ? p.n.replace(/\s*\(.*\)/, "") : p.n) + "</b>" + (p.att === "Yes" ? ' <span class="badge">' + T("Attunement") + "</span>" : "") +
         (p.tier > R.clvOf(ch) ? ' <span class="need">' + T("Level") + " " + p.tier + "+</span>" : "") +
-        (p.gen ? '<input data-set="ch.plans.' + i + '.item" value="' + attr(p.item) + '" placeholder="' + attr(T("Which item?")) + '" style="flex:1;min-width:160px">' : "") +
+        (p.gen ? '<input data-set="ch.plans.' + i + '.item" list="ua-' + p.id + '" value="' + attr(p.item) + '" placeholder="' + attr(T("Which item?")) + '" style="flex:1;min-width:160px">' +
+          '<datalist id="ua-' + p.id + '">' + (window.ARTIFICER.uaItems || []).filter(u => u[2] === p.id).map(u => '<option value="' + attr(u[0]) + '">').join("") + "</datalist>" : "") +
         '<div class="spacer"></div><button class="small danger" data-act="delPlan" data-v="' + i + '">' + T("Remove") + "</button></div>").join("");
       if (pl.chosen.length < pl.known) {
         const have = pl.chosen.map(p => p.id);
         h += '<div class="row" style="margin-top:8px"><select id="addPlan"><option value="">' + T("Add a plan") + "…</option>" +
           pl.tiers.map(t => '<optgroup label="' + attr(T("Artificer level") + " " + t + "+") + '">' + A.plans[t].filter(([k, , , gen]) => gen || !have.includes(k)).map(([k, n, att]) =>
-            '<option value="' + k + '">' + esc(n) + (att === "Yes" ? " · " + T("Attunement") : "") + (A.recommendedPlans.includes(k) ? " ★" : "") + "</option>").join("") + "</optgroup>").join("") +
+            '<option value="' + k + '">' + esc(n) + (att === "Yes" ? " · " + T("Attunement") : "") + (A.recommendedPlans.includes(k) ? " ★" : "") + "</option>" +
+            (A.uaItems || []).filter(u => u[2] === k && !pl.chosen.some(p => p.item === u[0])).map(u => '<option value="' + k + "|" + attr(u[0]) + '">\u00a0\u00a0↳ ' + esc(u[0]) + " (UA)" + (u[1] !== "No" ? " · " + T("Attunement") : "") + "</option>").join("")).join("") + "</optgroup>").join("") +
           '</select><button data-act="addPlan">+</button></div><p class="small muted">★ ' + T("recommended in the rules") + "</p>";
       }
       h += "</div>";
@@ -756,7 +758,7 @@
       else { cur.spells.cantrips = []; cur.spells.prepared = []; }
       save(); render();
     },
-    addPlan() { const v = $("#addPlan").value; if (!v) return; cur.ch.plans = cur.ch.plans || []; cur.ch.plans.push({ id: v, item: "" }); save(); render(); },
+    addPlan() { const v = $("#addPlan").value; if (!v) return; const [id, item] = v.split("|"); cur.ch.plans = cur.ch.plans || []; cur.ch.plans.push({ id, item: item || "" }); save(); render(); },
     delPlan(i) { cur.ch.plans.splice(+i, 1); save(); render(); },
     rollHp(v) { const c = R.cls(cur); cur.hp.rolls[v] = 1 + Math.floor(Math.random() * c.hd); save(); render(); },
     rollBio() { R.rollBionics(cur); syncCore(); save(); render(); },

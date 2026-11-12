@@ -506,7 +506,9 @@
           const pl = plans(ch);
           if (pl) text = "**Plans known (" + pl.chosen.length + "/" + pl.known + "):** " + (pl.chosen.map(p => planName(p) + (p.att === "Yes" ? " (attunement)" : "")).join(", ") || "none yet") +
             ".\n**Items after a Long Rest:** up to " + pl.items + ", each from a different plan" + (pl.armor ? " (one must be armor)" : "") + (pl.rare ? "; at most " + pl.rare + " Rare at a time" : "") +
-            ". **Attunement:** up to " + pl.attune + " items.\n\n" + text;
+            ". **Attunement:** up to " + pl.attune + " items.\n\n" +
+            pl.chosen.map(p => (A.uaItems || []).find(u => u[0] === p.item)).filter(Boolean).map(u => "**" + u[0] + ".** " + u[3]).join("\n") +
+            (pl.chosen.some(p => (A.uaItems || []).some(u => u[0] === p.item)) ? "\n\n" : "") + text;
         }
         if (fid.endsWith("-fighting-style") && ch.ch.fightingStyle) text = "**Your choice: " + ((feat(ch.ch.fightingStyle) || {}).n || "") + ".**\n\n" + text;
         if (/-(expertise|scholar|deft-explorer)$/.test(fid) && ch.exp.length) text = "**Your skills:** " + ch.exp.map(k => SKILL_NAMES[k]).join(", ") + ".\n\n" + text;
