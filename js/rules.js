@@ -3,6 +3,18 @@
 (function () {
   "use strict";
   const SRD = window.SRD, X = window.EXTRA;
+  // the Artificer (UA 2024, data/artificer.js) joins the SRD classes
+  const A = window.ARTIFICER;
+  if (A && !SRD.classes.artificer) {
+    SRD.classes.artificer = A.cls;
+    Object.assign(SRD.features, A.features);
+    Object.keys(A.subclasses).forEach(k => { SRD.subclasses[k] = A.subclasses[k]; });
+    Object.keys(A.spells).forEach(k => { if (!SRD.spells[k]) SRD.spells[k] = A.spells[k]; });
+    A.list.forEach(k => { const s = SRD.spells[k]; if (s && !s.cls.includes("artificer")) s.cls.push("artificer"); });
+    X.classEquip.artificer = A.equip;
+    X.labels.artificer = A.label;
+    Object.assign(X.uses, A.uses);
+  }
   const SPECIES = {};
   (window.SPECIES || []).forEach(s => { SPECIES[s.id] = s; });
 
@@ -120,7 +132,7 @@
     const bg = background(ch);
     if (bg && bg.tool) t.tools.add(bg.tool.startsWith("@") ? (ch.bg.tool ? itemName(ch.bg.tool) : "") : bg.tool);
     if (id === "bard") (ch.ch.instruments || []).forEach(i => i && t.tools.add(itemName(i)));
-    if (id === "monk" && ch.ch.monkTool) t.tools.add(itemName(ch.ch.monkTool));
+    if ((id === "monk" || id === "artificer") && ch.ch.monkTool) t.tools.add(itemName(ch.ch.monkTool));
     feats(ch).forEach(f => ((f.data && f.data.tools) || []).forEach(x => x && t.tools.add(itemName(x))));
     feats(ch).forEach(f => ((f.data && f.data.picks) || []).forEach(x => { if (x && !SKILLS[x]) t.tools.add(itemName(x)); }));
     t.tools.delete("");

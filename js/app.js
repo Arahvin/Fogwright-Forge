@@ -1,7 +1,7 @@
 // Fogwright Forge: the builder screens.
 (function () {
   "use strict";
-  const VERSION = "v2";
+  const VERSION = "v3";
   const R = window.Rules, SRD = window.SRD, X = window.EXTRA;
   const KEY = "forge-chars-v1", PREF = "forge-prefs-v1";
 
@@ -118,7 +118,7 @@
       if (id === "rogue" && ch.exp.length < 2) missing.push("class");
       if (id === "warlock" && ch.ch.invocations.length < 1) missing.push("class");
       if (id === "bard" && ch.ch.instruments.length < 3) missing.push("class");
-      if (id === "monk" && !ch.ch.monkTool) missing.push("class");
+      if ((id === "monk" || id === "artificer") && !ch.ch.monkTool) missing.push("class");
     }
     // background
     if (!bg) missing.push("background");
@@ -192,7 +192,7 @@
   function spellCard(id, on, control) {
     const s = R.spell(id);
     if (!s) return "";
-    const tag = [s.lv ? "Level " + s.lv : "Cantrip", s.sch, s.conc ? "Concentration" : "", s.rit ? "Ritual" : ""].filter(Boolean).join(" · ");
+    const tag = [s.lv ? "Level " + s.lv : "Cantrip", s.sch, s.conc ? "Concentration" : "", s.rit ? "Ritual" : "", s.src || ""].filter(Boolean).join(" · ");
     return '<div class="sp' + (on ? " on" : "") + '"><label>' + control + esc(s.n) + '</label><div class="s">' + esc(tag) + "</div>" +
       "<details><summary>" + esc(s.ct + " · " + s.r + " · " + s.d) + "</summary>" + md(s.t + (s.hi ? "\n\n**Higher levels.** " + s.hi : "")) + '<p class="s">' + esc(s.c) + "</p></details></div>";
   }
@@ -216,7 +216,7 @@
     let h = '<div class="panel"><h2>' + T("Class") + '</h2><div class="cards">' + Object.keys(SRD.classes).map(k => {
       const x = SRD.classes[k];
       return '<button class="card' + (k === id ? " on" : "") + '" data-act="setClass" data-v="' + k + '"><div class="t">' + esc(x.n) + ' <span class="badge acc">' + esc(X.labels[k] || "") + '</span></div><div class="s">' +
-        T("Hit Die") + " d" + x.hd + " · " + T("Saves") + " " + x.saves.map(s => s.toUpperCase()).join(", ") + (x.cast ? " · " + T("Spells") + " (" + x.cast.toUpperCase() + ")" : "") + "</div></button>";
+        T("Hit Die") + " d" + x.hd + " · " + T("Saves") + " " + x.saves.map(s => s.toUpperCase()).join(", ") + (x.cast ? " · " + T("Spells") + " (" + x.cast.toUpperCase() + ")" : "") + (x.src ? ' <span class="badge">' + esc(x.src) + "</span>" : "") + "</div></button>";
     }).join("") + "</div></div>";
     if (!c) return h;
     const row = R.levelRow(c, 1), bg = R.background(ch);
@@ -258,6 +258,7 @@
         ch.ch.invocations.map(k => md(SRD.invocations[k].t)).join("") + "</div>";
     }
     if (id === "bard") h += '<div class="choice"><h4>' + T("Musical instruments") + " " + status(ch.ch.instruments.length, 3) + "</h4>" + chips("ch.instruments", catItems("musical-instruments"), 3) + "</div>";
+    if (id === "artificer") h += '<div class="choice"><h4>' + T("Tool") + " (Artisan's Tools) " + status(ch.ch.monkTool ? 1 : 0, 1) + "</h4>" + select("ch.monkTool", catItems("artisans-tools").filter(([k]) => k !== "tinkers-tools")) + "</div>";
     if (id === "monk") h += '<div class="choice"><h4>' + T("Tool or instrument") + " " + status(ch.ch.monkTool ? 1 : 0, 1) + "</h4>" + select("ch.monkTool", [...catItems("artisans-tools"), ...catItems("musical-instruments")]) + "</div>";
     return h + "</div>";
   }
