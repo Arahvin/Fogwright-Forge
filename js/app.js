@@ -1,7 +1,7 @@
 // Fogwright Forge: the builder screens.
 (function () {
   "use strict";
-  const VERSION = "v18";
+  const VERSION = "v19";
   const R = window.Rules, SRD = window.SRD, X = window.EXTRA;
   const KEY = "forge-chars-v1", PREF = "forge-prefs-v1";
 
@@ -314,7 +314,10 @@
         (p.tier > R.clvOf(ch) ? ' <span class="need">' + T("Level") + " " + p.tier + "+</span>" : "") +
         (p.gen ? '<input data-set="ch.plans.' + i + '.item" list="ua-' + p.id + '" value="' + attr(p.item) + '" placeholder="' + attr(T("Which item?")) + '" style="flex:1;min-width:160px">' +
           '<datalist id="ua-' + p.id + '">' + (window.ARTIFICER.uaItems || []).filter(u => u[2] === p.id).map(u => '<option value="' + attr(u[0]) + '">').join("") + "</datalist>" : "") +
-        '<div class="spacer"></div><button class="small danger" data-act="delPlan" data-v="' + i + '">' + T("Remove") + "</button></div>").join("");
+        '<div class="spacer"></div><button class="small danger" data-act="delPlan" data-v="' + i + '">' + T("Remove") + "</button></div>" +
+        (R.tattooLevels(p) ? '<div class="row wrap small" style="margin:0 0 8px 12px">' + T("Spell inside") + " " + select("ch.plans." + i + ".spell",
+          Object.keys(SRD.spells).filter(k => R.tattooLevels(p).includes(SRD.spells[k].lv)).sort((a, b) => SRD.spells[a].lv - SRD.spells[b].lv || SRD.spells[a].n.localeCompare(SRD.spells[b].n)).map(k => [k, (SRD.spells[k].lv || "C") + " · " + SRD.spells[k].n])) +
+          '<span class="muted">' + T("tattooHelp") + "</span></div>" : "")).join("");
       if (pl.chosen.length < pl.known) {
         const have = pl.chosen.map(p => p.id);
         h += '<div class="row" style="margin-top:8px"><select id="addPlan"><option value="">' + T("Add a plan") + "…</option>" +
@@ -758,7 +761,7 @@
       else { cur.spells.cantrips = []; cur.spells.prepared = []; }
       save(); render();
     },
-    addPlan() { const v = $("#addPlan").value; if (!v) return; const [id, item] = v.split("|"); cur.ch.plans = cur.ch.plans || []; cur.ch.plans.push({ id, item: item || "" }); save(); render(); },
+    addPlan() { const v = $("#addPlan").value; if (!v) return; const [id, item] = v.split("|"); cur.ch.plans = cur.ch.plans || []; cur.ch.plans.push(Object.assign({ id, item: item || "" }, /tattoo/i.test(item || "") ? { tattoo: true } : {})); save(); render(); },
     delPlan(i) { cur.ch.plans.splice(+i, 1); save(); render(); },
     rollHp(v) { const c = R.cls(cur); cur.hp.rolls[v] = 1 + Math.floor(Math.random() * c.hd); save(); render(); },
     rollBio() { R.rollBionics(cur); syncCore(); save(); render(); },

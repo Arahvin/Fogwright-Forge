@@ -118,10 +118,12 @@
     const tiers = Object.keys(A.plans).map(Number).filter(t => t <= lv);
     const all = {};
     Object.keys(A.plans).forEach(t => A.plans[t].forEach(([id, n, att, gen]) => { all[id] = { id, n, att, gen: !!gen, tier: +t }; }));
-    const chosen = (ch.ch.plans || []).map(p => Object.assign({}, all[p.id] || { id: p.id, n: p.id, att: "", tier: 99 }, { item: p.item || "" }));
+    const chosen = (ch.ch.plans || []).map(p => Object.assign({}, all[p.id] || { id: p.id, n: p.id, att: "", tier: 99 }, { item: p.item || "", spell: p.spell || "", tattoo: !!p.tattoo }));
     return { known: cs.plans_known + armor, items: cs.magic_items + armor, attune: lv >= 18 ? 6 : lv >= 14 ? 5 : lv >= 10 ? 4 : 3, armor: !!armor,
       tiers, all, chosen, rare: lv >= 14 ? 3 : 0 };
   }
+  // a plan that holds a spell (Spellwrought Tattoo): the spell levels its open plan allows
+  const tattooLevels = p => !(p.tattoo || /tattoo/i.test(p.item || "")) ? null : p.id === "common" ? [0, 1] : p.id === "uncommon-rw" ? [2] : p.id === "rare" ? [3, 4, 5] : null;
   const planName = p => p.gen ? (p.item ? p.item + " (" + p.n.replace(/\s*\(.*\)/, "") + ")" : p.n + " - item not named yet") : p.n;
 
   // the +1 a general feat or an epic boon gives: allowed abilities, and the cap
@@ -288,6 +290,8 @@
       (d.cantrips || []).forEach(id => push(id, "Magic Initiate", "Magic Initiate (" + cap(d.cls || f.fixedCls) + ")", true, d.abil));
       if (d.spell) push(d.spell, "Magic Initiate", "Magic Initiate: cast once per Long Rest without a slot; always prepared.", true, d.abil);
     });
+    const pl = plans(ch);
+    if (pl) pl.chosen.forEach(p => { if (p.spell) push(p.spell, "Replicate Magic Item", (p.item || "Spellwrought Tattoo") + ": cast it once with no slot (pick \"No slot\"), then it is used up; you can make it again after a Long Rest.", true, "item"); });
     (ch.spells.extra || []).forEach(e => push(e.id, "Other", e.note || "", true, ""));
     return out;
   }
@@ -517,6 +521,7 @@
       });
       const sub = SRD.subclasses[(ch.classes[0] || {}).sub];
       if (sub) sub.f.filter(f => f.lv <= clv).forEach(f => features.push({ name: f.n, text: f.t, uses: 0, recharge: "", src: sub.n + " " + f.lv }));
+      { const pl = plans(ch); if (pl) pl.chosen.filter(p => p.spell && spell(p.spell)).forEach(p => features.push({ name: (p.item || "Spellwrought Tattoo").slice(0, 60), text: "Spellwrought Tattoo holding **" + spell(p.spell).n + "**. Cast it once with no spell slot (the tattoo's own numbers from the DMG table, not yours), then it is used up. Replicate Magic Item can make it again after a Long Rest (it counts as one of the items you make).", uses: 1, recharge: "long", src: "Replicate Magic Item" })); }
       Object.keys(ch.lvNotes || {}).filter(k => +k <= clv && ch.lvNotes[k]).sort((a, b) => a - b).forEach(k => features.push({ name: "Level " + k + " choices", text: ch.lvNotes[k], uses: 0, recharge: "", src: c.n + " " + k }));
       (ch.ch.invocations || []).forEach(k => { const v = SRD.invocations[k]; if (v) features.push({ name: "Invocation: " + v.n, text: v.t, uses: 0, recharge: "", src: "Warlock" }); });
       ch.ch.mastery.forEach(w => {
@@ -601,7 +606,8 @@
         if (pl.chosen.length < pl.known) warn.push("Choose " + (pl.known - pl.chosen.length) + " more magic item plan(s).");
         if (pl.chosen.length > pl.known) warn.push("Too many magic item plans: remove " + (pl.chosen.length - pl.known) + ".");
         if (pl.chosen.some(p => p.gen && !p.item)) warn.push("Name the item for each open magic item plan.");
-        if (pl.chosen.some(p => p.tier > clv)) warn.push("A magic item plan needs a higher Artificer level.");
+        if (pl.chosen.some(p => tattooLevels(p) && !p.spell)) warn.push("Choose the spell in each Spellwrought Tattoo plan.");
+        if (pl.chosen.some(p => pl && p.tier > clv)) warn.push("A magic item plan needs a higher Artificer level.");
       }
       if ((ch.ch.langs || []).filter(Boolean).length < n.langs) warn.push("Choose " + (n.langs - ch.ch.langs.filter(Boolean).length) + " more language(s).");
     }
@@ -654,7 +660,7 @@
 
   window.Rules = {
     ABILS, ABIL_NAMES, SKILLS, SKILL_NAMES, SPECIES, STANDARD, POINT_COST, mod, sign, pbOf, cap,
-    blank, fullName, clvOf, asiLevels, subLevel, counts, plans, planName, levelFeats, featPlus, asiBonus, hasFightingStyle, BIO_SLOTS, bionics, rollBionics, cls, clsId, level, species, line, background, feat, feats, spell, item, itemName, levelRow,
+    blank, fullName, clvOf, asiLevels, subLevel, counts, plans, planName, tattooLevels, levelFeats, featPlus, asiBonus, hasFightingStyle, BIO_SLOTS, bionics, rollBionics, cls, clsId, level, species, line, background, feat, feats, spell, item, itemName, levelRow,
     baseScores, pointsSpent, bgBonus, scores, training, weaponProficient, skillProfs, spellList, spellLimits,
     classSpells, startingGear, expandEquip, compute, toVTT
   };
