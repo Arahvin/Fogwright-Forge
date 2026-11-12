@@ -1,7 +1,7 @@
 // Fogwright Forge: the builder screens.
 (function () {
   "use strict";
-  const VERSION = "v15";
+  const VERSION = "v16";
   const R = window.Rules, SRD = window.SRD, X = window.EXTRA;
   const KEY = "forge-chars-v1", PREF = "forge-prefs-v1";
 
@@ -147,6 +147,8 @@
       if (ch.ch.mastery.length < cn.mastery) missing.push("class");
       if (ch.exp.length < cn.expertise) missing.push("class");
       if (id === "warlock" && ch.ch.invocations.length < cn.invocations) missing.push("class");
+      const pl = R.plans(ch);
+      if (pl && (pl.chosen.length !== pl.known || pl.chosen.some(p => (p.gen && !p.item) || p.tier > R.clvOf(ch)))) missing.push("class");
       // level-ups
       const lv = R.clvOf(ch);
       if (lv >= R.subLevel(c) && !ch.classes[0].sub) missing.push("level");
@@ -303,6 +305,24 @@
     }
     if (id === "bard") h += '<div class="choice"><h4>' + T("Musical instruments") + " " + status(ch.ch.instruments.length, 3) + "</h4>" + chips("ch.instruments", catItems("musical-instruments"), 3) + "</div>";
     if (id === "artificer") h += '<div class="choice"><h4>' + T("Tool") + " (Artisan's Tools) " + status(ch.ch.monkTool ? 1 : 0, 1) + "</h4>" + select("ch.monkTool", catItems("artisans-tools").filter(([k]) => k !== "tinkers-tools")) + "</div>";
+    const pl = R.plans(ch);
+    if (pl) {
+      const A = window.ARTIFICER;
+      h += '<div class="choice"><h4>' + T("Magic item plans") + " " + status(pl.chosen.length, pl.known) + '</h4><p class="small muted">' + T("Choose") + " " + pl.known + (pl.armor ? " (" + T("one extra must be Armor") + ")" : "") + ". " +
+        esc(T("plansHelp").replace("{items}", pl.items).replace("{att}", pl.attune)) + "</p>";
+      h += pl.chosen.map((p, i) => '<div class="row wrap" style="margin:4px 0"><b>' + esc(p.gen ? p.n.replace(/\s*\(.*\)/, "") : p.n) + "</b>" + (p.att === "Yes" ? ' <span class="badge">' + T("Attunement") + "</span>" : "") +
+        (p.tier > R.clvOf(ch) ? ' <span class="need">' + T("Level") + " " + p.tier + "+</span>" : "") +
+        (p.gen ? '<input data-set="ch.plans.' + i + '.item" value="' + attr(p.item) + '" placeholder="' + attr(T("Which item?")) + '" style="flex:1;min-width:160px">' : "") +
+        '<div class="spacer"></div><button class="small danger" data-act="delPlan" data-v="' + i + '">' + T("Remove") + "</button></div>").join("");
+      if (pl.chosen.length < pl.known) {
+        const have = pl.chosen.map(p => p.id);
+        h += '<div class="row" style="margin-top:8px"><select id="addPlan"><option value="">' + T("Add a plan") + "…</option>" +
+          pl.tiers.map(t => '<optgroup label="' + attr(T("Artificer level") + " " + t + "+") + '">' + A.plans[t].filter(([k, , , gen]) => gen || !have.includes(k)).map(([k, n, att]) =>
+            '<option value="' + k + '">' + esc(n) + (att === "Yes" ? " · " + T("Attunement") : "") + (A.recommendedPlans.includes(k) ? " ★" : "") + "</option>").join("") + "</optgroup>").join("") +
+          '</select><button data-act="addPlan">+</button></div><p class="small muted">★ ' + T("recommended in the rules") + "</p>";
+      }
+      h += "</div>";
+    }
     if (id === "monk") h += '<div class="choice"><h4>' + T("Tool or instrument") + " " + status(ch.ch.monkTool ? 1 : 0, 1) + "</h4>" + select("ch.monkTool", [...catItems("artisans-tools"), ...catItems("musical-instruments")]) + "</div>";
     return h + "</div>";
   }
@@ -345,6 +365,7 @@
       if (row.f.some(f => /-(expertise|scholar|deft-explorer)$/.test(f))) nxt.push(T("Expertise"));
       if (id === "warlock" && (row.cs.eldritch_invocations || 0) > (R.levelRow(c, L - 1).cs.eldritch_invocations || 0)) nxt.push(T("Eldritch Invocation"));
       if ((row.cs.weapon_mastery || 0) > (R.levelRow(c, L - 1).cs.weapon_mastery || 0)) nxt.push(T("Weapon Mastery"));
+      if ((row.cs.plans_known || 0) > (R.levelRow(c, L - 1).cs.plans_known || 0) || (id === "artificer" && L === 9 && ch.classes[0].sub === "armorer")) nxt.push(T("Magic item plans"));
       if (nxt.length) h += '<p class="small">' + T("New choices on the Class tab") + ": <b>" + nxt.join(", ") + '</b> <button class="small" data-tab="class">' + T("Class") + "</button></p>";
       if (row.can > R.levelRow(c, L - 1).can || row.prep > R.levelRow(c, L - 1).prep) h += '<p class="small">' + T("More spells") + ': <button class="small" data-tab="spells">' + T("Spells") + "</button></p>";
       h += '<div class="choice"><h4>' + T("Other choices") + '</h4><textarea data-set="lvNotes.' + L + '" placeholder="' + attr(T("lvNotesHelp")) + '">' + esc((ch.lvNotes || {})[L] || "") + "</textarea></div>";
@@ -729,11 +750,14 @@
       cur.exp = cur.exp.slice(0, n.expertise); cur.ch.mastery = cur.ch.mastery.slice(0, n.mastery);
       cur.ch.invocations = cur.ch.invocations.slice(0, n.invocations); cur.ch.langs = cur.ch.langs.slice(0, n.langs);
       if (!n.fightingStyle) cur.ch.fightingStyle = "";
+      const pl = R.plans(cur); cur.ch.plans = pl ? (cur.ch.plans || []).slice(0, pl.known) : [];
       const lim = R.spellLimits(cur);
       if (lim) { cur.spells.cantrips = cur.spells.cantrips.slice(0, lim.cantrips); cur.spells.prepared = cur.spells.prepared.filter(k => (R.spell(k) || {}).lv <= lim.maxLv).slice(0, lim.prepared); }
       else { cur.spells.cantrips = []; cur.spells.prepared = []; }
       save(); render();
     },
+    addPlan() { const v = $("#addPlan").value; if (!v) return; cur.ch.plans = cur.ch.plans || []; cur.ch.plans.push({ id: v, item: "" }); save(); render(); },
+    delPlan(i) { cur.ch.plans.splice(+i, 1); save(); render(); },
     rollHp(v) { const c = R.cls(cur); cur.hp.rolls[v] = 1 + Math.floor(Math.random() * c.hd); save(); render(); },
     rollBio() { R.rollBionics(cur); syncCore(); save(); render(); },
     roll4d6() {

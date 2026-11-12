@@ -59,6 +59,22 @@ window.ARTIFICER = (function () {
       "artificer-soul-of-artifice": F("Soul of Artifice", 20,
         "**Cheat Death.** When you drop to 0 HP and aren't killed outright, you can destroy one Uncommon or Rare item you made with Replicate Magic Item and go to 20 HP instead.\n**Magical Guidance.** While attuned to at least one magic item, once per turn you can add 1d6 to an ability check after rolling.")
     },
+    // Magic item plans for Replicate Magic Item, by the Artificer level that unlocks each table.
+    // [id, name, attunement, generic] - a generic plan names one specific item and can be learned more than once.
+    plans: {
+      2: [["alchemy-jug", "Alchemy Jug", "No"], ["bag-of-holding", "Bag of Holding", "No"], ["cap-of-water-breathing", "Cap of Water Breathing", "No"],
+        ["common", "Common magic item (not a Potion, Scroll or cursed)", "Varies", true], ["goggles-of-night", "Goggles of Night", "No"],
+        ["rope-of-climbing", "Rope of Climbing", "No"], ["sending-stones", "Sending Stones", "No"], ["shield-1", "Shield +1", "No"],
+        ["wand-of-magic-detection", "Wand of Magic Detection", "No"], ["wand-of-secrets", "Wand of Secrets", "No"],
+        ["wand-of-the-war-mage-1", "Wand of the War Mage +1", "Yes"], ["weapon-1", "Weapon +1", "No"]],
+      6: [["armor-1", "Armor +1", "No"], ["boots-of-elvenkind", "Boots of Elvenkind", "No"], ["cloak-of-elvenkind", "Cloak of Elvenkind", "Yes"],
+        ["cloak-of-the-manta-ray", "Cloak of the Manta Ray", "No"], ["eyes-of-charming", "Eyes of Charming", "Yes"], ["gloves-of-thievery", "Gloves of Thievery", "No"],
+        ["lantern-of-revealing", "Lantern of Revealing", "No"], ["pipes-of-haunting", "Pipes of Haunting", "No"],
+        ["uncommon-awwp", "Uncommon armor, wand or weapon (not cursed)", "Varies", true]],
+      10: [["uncommon-rw", "Uncommon ring or wondrous item (not cursed)", "Varies", true]],
+      14: [["rare", "Rare armor, ring, wand, weapon or wondrous item (not cursed)", "Varies", true]]
+    },
+    recommendedPlans: ["bag-of-holding", "cap-of-water-breathing", "sending-stones", "wand-of-the-war-mage-1"],
     uses: {
       "artificer-magical-tinkering": ["mod:int", "long", "Magical Tinkering"],
       "artificer-flash-of-genius": ["mod:int", "long", "Flash of Genius"],

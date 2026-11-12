@@ -44,7 +44,7 @@
       bg: { id: "", mode: "21", p2: "", p1: "", p111: [], tool: "", featData: {} },
       ab: { method: "array", base: { str: 8, dex: 8, con: 8, int: 8, wis: 8, cha: 8 }, assign: {}, rolled: [] },
       skills: [], exp: [],
-      ch: { fightingStyle: "", divineOrder: "", primalOrder: "", mastery: [], invocations: [], instruments: [], monkTool: "", langs: [] },
+      ch: { fightingStyle: "", divineOrder: "", primalOrder: "", mastery: [], invocations: [], instruments: [], monkTool: "", langs: [], plans: [] },
       spells: { cantrips: [], prepared: [], extra: [] },
       equip: { cls: "", bg: "", picks: {} }, items: [], gp: 0,
       det: { appearance: "", personality: "", backstory: "", notes: "" },
@@ -109,6 +109,21 @@
     });
     return out;
   }
+  // Artificer magic item plans (Replicate Magic Item): how many, which tables are open, the plans chosen
+  function plans(ch) {
+    if (clsId(ch) !== "artificer" || !A) return null;
+    const lv = clvOf(ch), cs = levelRow(cls(ch), lv).cs || {};
+    if (!cs.plans_known) return null;
+    const armor = (ch.classes[0] || {}).sub === "armorer" && lv >= 9 ? 1 : 0;
+    const tiers = Object.keys(A.plans).map(Number).filter(t => t <= lv);
+    const all = {};
+    Object.keys(A.plans).forEach(t => A.plans[t].forEach(([id, n, att, gen]) => { all[id] = { id, n, att, gen: !!gen, tier: +t }; }));
+    const chosen = (ch.ch.plans || []).map(p => Object.assign({}, all[p.id] || { id: p.id, n: p.id, att: "", tier: 99 }, { item: p.item || "" }));
+    return { known: cs.plans_known + armor, items: cs.magic_items + armor, attune: lv >= 18 ? 6 : lv >= 14 ? 5 : lv >= 10 ? 4 : 3, armor: !!armor,
+      tiers, all, chosen, rare: lv >= 14 ? 3 : 0 };
+  }
+  const planName = p => p.gen ? (p.item ? p.item + " (" + p.n.replace(/\s*\(.*\)/, "") + ")" : p.n + " - item not named yet") : p.n;
+
   // the +1 a general feat or an epic boon gives: allowed abilities, and the cap
   function featPlus(id) {
     const f = feat(id);
@@ -487,6 +502,12 @@
         if (fid === "cleric-divine-order" && ch.ch.divineOrder) text = "**Your choice: " + X.divineOrder[ch.ch.divineOrder].n + ".**\n\n" + text;
         if (fid === "druid-primal-order" && ch.ch.primalOrder) text = "**Your choice: " + X.primalOrder[ch.ch.primalOrder].n + ".**\n\n" + text;
         if (fid.endsWith("-weapon-mastery") && ch.ch.mastery.length) text = "**Your weapons:** " + ch.ch.mastery.map(w => itemName(w) + " (" + ((SRD.mastery[(item(w) || {}).mastery] || {}).n || "?") + ")").join(", ") + ".\n\n" + text;
+        if (fid === "artificer-replicate-magic-item") {
+          const pl = plans(ch);
+          if (pl) text = "**Plans known (" + pl.chosen.length + "/" + pl.known + "):** " + (pl.chosen.map(p => planName(p) + (p.att === "Yes" ? " (attunement)" : "")).join(", ") || "none yet") +
+            ".\n**Items after a Long Rest:** up to " + pl.items + ", each from a different plan" + (pl.armor ? " (one must be armor)" : "") + (pl.rare ? "; at most " + pl.rare + " Rare at a time" : "") +
+            ". **Attunement:** up to " + pl.attune + " items.\n\n" + text;
+        }
         if (fid.endsWith("-fighting-style") && ch.ch.fightingStyle) text = "**Your choice: " + ((feat(ch.ch.fightingStyle) || {}).n || "") + ".**\n\n" + text;
         if (/-(expertise|scholar|deft-explorer)$/.test(fid) && ch.exp.length) text = "**Your skills:** " + ch.exp.map(k => SKILL_NAMES[k]).join(", ") + ".\n\n" + text;
         const [n, rc] = usesOf(X.uses[fid]);
@@ -573,6 +594,13 @@
       if (clsId(ch) === "warlock" && ch.ch.invocations.length < n.invocations) warn.push("Choose " + (n.invocations - ch.ch.invocations.length) + " more Eldritch Invocation(s).");
       if (ch.exp.length < n.expertise) warn.push("Choose " + (n.expertise - ch.exp.length) + " more Expertise skill(s).");
       if (n.fightingStyle && !ch.ch.fightingStyle) warn.push("Choose a Fighting Style.");
+      const pl = plans(ch);
+      if (pl) {
+        if (pl.chosen.length < pl.known) warn.push("Choose " + (pl.known - pl.chosen.length) + " more magic item plan(s).");
+        if (pl.chosen.length > pl.known) warn.push("Too many magic item plans: remove " + (pl.chosen.length - pl.known) + ".");
+        if (pl.chosen.some(p => p.gen && !p.item)) warn.push("Name the item for each open magic item plan.");
+        if (pl.chosen.some(p => p.tier > clv)) warn.push("A magic item plan needs a higher Artificer level.");
+      }
       if ((ch.ch.langs || []).filter(Boolean).length < n.langs) warn.push("Choose " + (n.langs - ch.ch.langs.filter(Boolean).length) + " more language(s).");
     }
 
@@ -624,7 +652,7 @@
 
   window.Rules = {
     ABILS, ABIL_NAMES, SKILLS, SKILL_NAMES, SPECIES, STANDARD, POINT_COST, mod, sign, pbOf, cap,
-    blank, fullName, clvOf, asiLevels, subLevel, counts, levelFeats, featPlus, asiBonus, hasFightingStyle, BIO_SLOTS, bionics, rollBionics, cls, clsId, level, species, line, background, feat, feats, spell, item, itemName, levelRow,
+    blank, fullName, clvOf, asiLevels, subLevel, counts, plans, planName, levelFeats, featPlus, asiBonus, hasFightingStyle, BIO_SLOTS, bionics, rollBionics, cls, clsId, level, species, line, background, feat, feats, spell, item, itemName, levelRow,
     baseScores, pointsSpent, bgBonus, scores, training, weaponProficient, skillProfs, spellList, spellLimits,
     classSpells, startingGear, expandEquip, compute, toVTT
   };
