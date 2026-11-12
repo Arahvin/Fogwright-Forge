@@ -1,7 +1,7 @@
 // Fogwright Forge: the builder screens.
 (function () {
   "use strict";
-  const VERSION = "v5";
+  const VERSION = "v6";
   const R = window.Rules, SRD = window.SRD, X = window.EXTRA;
   const KEY = "forge-chars-v1", PREF = "forge-prefs-v1";
 
@@ -99,6 +99,7 @@
       options.map(o => { const [v, l] = Array.isArray(o) ? o : [o, o]; return '<option value="' + attr(v) + '"' + (v === val ? " selected" : "") + ">" + esc(l) + "</option>"; }).join("") + "</select>";
   }
   const status = (have, need) => have >= need ? '<span class="done">✓ ' + T("Done") + "</span>" : '<span class="need">' + (need - have) + " " + T("to choose") + "</span>";
+  const glyph = (id, big) => window.SPECIES_ICONS && SPECIES_ICONS[id] ? '<svg class="glyph sp-' + id + (big ? " big" : "") + '" viewBox="0 0 48 48" aria-hidden="true">' + SPECIES_ICONS[id] + "</svg>" : "";
   const catItems = cat => ((SRD.cats[cat] || {}).items || []).map(id => [id, R.itemName(id)]);
 
   // ---------------------------------------------------------------- what each step still needs
@@ -291,10 +292,10 @@
   function stepSpecies() {
     const ch = cur, s = R.species(ch);
     let h = '<div class="panel"><h2>' + T("Species") + '</h2><p class="small muted">Ninth World species, with the 2024 rules unchanged. Species give no ability score increases (those come from the background).</p><div class="cards">' +
-      Object.values(R.SPECIES).map(x => '<button class="card' + (x.id === ch.sp.id ? " on" : "") + '" data-act="setSpecies" data-v="' + x.id + '"><div class="t">' + esc(x.n) + ' <span class="badge">' + esc(x.rules) + '</span></div><div class="s">' +
-        x.size.join(" / ") + " · " + x.speed + " ft" + (x.dv ? " · Darkvision " + x.dv : "") + "</div></button>").join("") + "</div></div>";
+      Object.values(R.SPECIES).map(x => '<button class="card' + (x.id === ch.sp.id ? " on" : "") + '" data-act="setSpecies" data-v="' + x.id + '"><div class="gl">' + glyph(x.id) + '<div><div class="t">' + esc(x.n) + ' <span class="badge">' + esc(x.rules) + '</span></div><div class="s">' +
+        x.size.join(" / ") + " · " + x.speed + " ft" + (x.dv ? " · Darkvision " + x.dv : "") + "</div></div></div></button>").join("") + "</div></div>";
     if (!s) return h;
-    h += '<div class="panel"><h2>' + esc(s.n) + ' <span class="badge">' + esc(s.rules) + "</span></h2>" + md(s.lore);
+    h += '<div class="panel"><div class="row" style="align-items:center;margin-bottom:6px">' + glyph(s.id, true) + '<h2 style="margin:0">' + esc(s.n) + ' <span class="badge">' + esc(s.rules) + "</span></h2></div>" + md(s.lore);
     if (s.size.length > 1) h += '<div class="choice"><h4>' + T("Size") + " " + status(ch.sp.size ? 1 : 0, 1) + "</h4>" + pick("sp.size", s.size) + "</div>";
     if (s.lines) {
       const sug = s.bionics ? coreLine() : "";
@@ -436,7 +437,7 @@
 
   function stepSheet() {
     const ch = cur, s = R.compute(ch);
-    let h = '<div class="panel"><div class="row"><div><h2 style="margin:0">' + esc(s.name) + '</h2><div class="muted">' +
+    let h = '<div class="panel"><div class="row">' + glyph(ch.sp.id, true) + '<div><h2 style="margin:0">' + esc(s.name) + '</h2><div class="muted">' +
       esc([s.clsText, s.speciesText, s.bgText, s.size].filter(Boolean).join(" · ")) + (s.label ? ' <span class="badge acc">' + esc(s.label) + "</span>" : "") + "</div></div>" +
       '<div class="spacer"></div><div class="row noprint"><button class="primary" data-act="exportVTT">' + T("Export for Fogwright VTT") + '</button><button data-act="saveFile">' + T("Save Forge file") + '</button><button data-act="print">' + T("Print") + "</button></div></div>";
     h += '<details class="noprint"><summary class="small">' + T("How to bring it into the VTT") + '</summary><p class="small">' +
@@ -464,7 +465,7 @@
   function side() {
     const s = R.compute(cur), need = stepNeeds(cur);
     const todo = s.warn;
-    return '<div class="panel side mini"><h3>' + esc(s.name) + '</h3><div class="muted small">' + esc([s.clsText, s.speciesText, s.bgText].filter(Boolean).join(" · ") || "—") + "</div>" +
+    return '<div class="panel side mini"><div class="row" style="gap:8px;flex-wrap:nowrap">' + glyph(cur.sp.id) + '<h3 style="margin:0">' + esc(s.name) + '</h3></div><div class="muted small">' + esc([s.clsText, s.speciesText, s.bgText].filter(Boolean).join(" · ") || "—") + "</div>" +
       '<div class="abil" style="grid-template-columns:repeat(3,1fr);margin:10px 0">' + AB.map(k => '<div class="abox"><div class="k">' + k + '</div><div class="v" style="font-size:1.15rem">' + s.scores[k] + '</div><div class="m">' + R.sign(s.mods[k]) + "</div></div>").join("") + "</div>" +
       [[T("Hit Points"), s.hp], [T("Armor Class"), s.ac], [T("Speed"), s.speed + " ft"], [T("Initiative"), R.sign(s.init)], [T("Proficiency"), "+" + s.pb]].map(([k, v]) => '<div class="line"><span>' + k + "</span><b>" + v + "</b></div>").join("") +
       '<h4 style="margin-top:12px">' + T("Still to do") + "</h4>" + (todo.length || Object.values(need).includes(false) ? todo.slice(0, 6).map(w => '<div class="warn">' + esc(w) + "</div>").join("") +
@@ -482,7 +483,7 @@
     if (!chars.length) h += '<p class="muted">' + T("No characters yet.") + "</p>";
     h += '<div class="list">' + chars.slice().sort((a, b) => b.updated - a.updated).map(c => {
       const s = R.compute(c);
-      return '<div class="charrow"><div><div class="t">' + esc(s.name) + '</div><div class="muted small">' + esc([s.clsText, s.speciesText, s.bgText].filter(Boolean).join(" · ") || "—") + (c.player ? " · " + esc(c.player) : "") + "</div></div>" +
+      return '<div class="charrow">' + glyph(c.sp.id) + '<div><div class="t">' + esc(s.name) + '</div><div class="muted small">' + esc([s.clsText, s.speciesText, s.bgText].filter(Boolean).join(" · ") || "—") + (c.player ? " · " + esc(c.player) : "") + "</div></div>" +
         '<div class="spacer"></div><button data-act="open" data-v="' + c.id + '">' + T("Open") + '</button><button class="danger" data-act="del" data-v="' + c.id + '">' + (armed === "del:" + c.id ? T("Click again to delete") : T("Delete")) + "</button></div>";
     }).join("") + "</div></div>";
     h += '<div class="panel small muted"><b>Fogwright Forge</b> builds D&amp;D 2024 characters for the Ninth World: SRD 5.2 classes and spells, the Ninth World species and the Toolkit house rules. ' +
