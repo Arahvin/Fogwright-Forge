@@ -115,10 +115,14 @@ window.EXTRA = {
     warden: { n: "Warden", t: "Proficiency with Martial weapons and training with Medium armor." }
   },
 
+  // Ninth World names for the 2024 languages (Lantern Marches world/languages.md). [name, 5e language]
+  // Rule unchanged: the Truth (Common) + two standard languages; rare ones only from features or the GM.
   languages: {
-    standard: ["Common Sign Language", "Draconic", "Dwarvish", "Elvish", "Giant", "Gnomish", "Goblin", "Halfling", "Orc"],
-    rare: ["Abyssal", "Celestial", "Deep Speech", "Druidic", "Infernal", "Primordial", "Sylvan", "Thieves' Cant", "Undercommon"],
-    common: "Common (the Truth)"
+    standard: [["Battle-sign", "Common Sign Language"], ["Marcher speech", "Halfling"], ["Southern trade-cant", "Goblin"], ["Drill", "Orc"],
+      ["Hall-tongue", "Elvish"], ["Ashtongue", "Draconic"], ["Holdspeech", "Dwarvish"], ["Tick", "Gnomish"], ["Reedtalk", "Giant"]],
+    rare: [["Lamp-liturgy", "Celestial"], ["Machine-speech", "Deep Speech"], ["Mender-cant", "Infernal"], ["Void-whisper", "Abyssal"],
+      ["Weather-speech", "Primordial"], ["Greensong", "Sylvan"], ["Root-sign", "Druidic"], ["Gutter-cant", "Thieves' Cant"], ["Lowtongue", "Undercommon"]],
+    common: "the Truth"
   },
 
   // Uses per rest for class features at level 1-2 (the rest comes in the level-up phase)

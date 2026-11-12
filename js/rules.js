@@ -360,8 +360,8 @@
 
     // languages
     const langs = [X.languages.common, ...(ch.ch.langs || []).filter(Boolean)];
-    if (id === "rogue") langs.push("Thieves' Cant");
-    if (id === "druid") langs.push("Druidic");
+    if (id === "rogue") langs.push("Gutter-cant");
+    if (id === "druid") langs.push("Root-sign");
 
     // features
     const features = [];

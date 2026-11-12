@@ -1,7 +1,7 @@
 // Fogwright Forge: the builder screens.
 (function () {
   "use strict";
-  const VERSION = "v13";
+  const VERSION = "v14";
   const R = window.Rules, SRD = window.SRD, X = window.EXTRA;
   const KEY = "forge-chars-v1", PREF = "forge-prefs-v1";
 
@@ -452,12 +452,14 @@
 
   function stepDetails() {
     const ch = cur, L = X.languages;
-    const langs = [...L.standard, ...L.rare.filter(x => !["Druidic", "Thieves' Cant"].includes(x))];
+    const langs = L.standard.map(([n, dnd]) => [n, n + " (" + dnd + ")"]);
+    const rareOn = ch.ch.langs.filter(v => L.rare.some(r => r[0] === v)).map(v => [v, v + " (rare)"]);
     let h = '<div class="panel"><h2>' + T("Details") + '</h2><div class="form">' +
       "<span>" + T("Character name") + '</span><div class="row"><input data-set="name" value="' + attr(ch.name) + '" style="flex:2;min-width:140px"><label class="row" style="gap:6px;flex:1;min-width:140px">' + T("Nickname") + ' <input data-set="nick" value="' + attr(ch.nick || "") + '" style="flex:1;min-width:0"></label></div>' +
       "<span>" + T("Player (VTT name)") + '</span><div><input data-set="player" value="' + attr(ch.player) + '"><div class="small muted">The name the player logs in with in Fogwright VTT, so the sheet is theirs.</div></div>' +
       "</div>";
-    h += '<div class="choice"><h4>' + T("Languages") + " " + status(ch.ch.langs.filter(Boolean).length, 2) + '</h4><p class="small muted">' + esc(L.common) + " + 2. " + T("Choose") + " 2.</p>" + chips("ch.langs", langs, 2) + "</div>";
+    h += '<div class="choice"><h4>' + T("Languages") + " " + status(ch.ch.langs.filter(Boolean).length, 2) + '</h4><p class="small muted">' + esc(L.common) + " (Common) + 2. " + T("Choose") + " 2.</p>" + chips("ch.langs", langs.concat(rareOn), 2) +
+      '<p class="small muted">' + T("Rare languages") + ": " + esc(L.rare.map(r => r[0] + " (" + r[1] + ")").join(", ")) + ". " + T("rareHelp") + "</p></div>";
     ["appearance", "personality", "backstory", "notes"].forEach(k => {
       h += '<div class="choice"><h4>' + T(R.cap(k)) + '</h4><textarea data-set="det.' + k + '">' + esc(ch.det[k] || "") + "</textarea></div>";
     });
@@ -667,7 +669,11 @@
   function fixUp(c) {
     const b = R.blank();
     const deep = (d, s) => { Object.keys(d).forEach(k => { if (s[k] === undefined) s[k] = d[k]; else if (d[k] && typeof d[k] === "object" && !Array.isArray(d[k]) && typeof s[k] === "object") deep(d[k], s[k]); }); return s; };
-    return deep(b, c);
+    deep(b, c);
+    const L = X.languages, to = {};
+    L.standard.concat(L.rare).forEach(([n, dnd]) => { to[dnd] = n; });
+    c.ch.langs = (c.ch.langs || []).map(v => to[v] || v);
+    return c;
   }
   chars = chars.map(fixUp);
 
