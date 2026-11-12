@@ -127,8 +127,8 @@ table.grid th { color: var(--muted); font-weight: 500; font-size: .85rem; }
 }
 
 /* species glyphs */
-.glyph { width: 44px; height: 44px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-.glyph.big { width: 72px; height: 72px; stroke-width: 1.5; }
+.glyph { width: 44px; height: 44px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.glyph.big { width: 72px; height: 72px; stroke-width: 1.7; }
 .card .gl { display: flex; gap: 10px; align-items: center; }
 .sp-humans { color: #4fc7b6; } .sp-grafted { color: #7189ff; } .sp-warbred { color: #c06ae0; } .sp-firstborn { color: #5aa9e6; }
 .sp-lightborn { color: #e2b955; } .sp-ashmaw { color: #e26a88; } .sp-stonebound { color: #9490f0; } .sp-tinkerfolk { color: #63c97f; }
