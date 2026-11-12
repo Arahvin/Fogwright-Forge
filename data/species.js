@@ -133,7 +133,123 @@ window.SPECIES = [
     "n": "Bionic Body",
     "t": "Make your bionics on the **Grafted Bionics** table (`tables/grafted-bionics.md`): two grafts, a look, a quirk, and one **perk**. The perk is a small, always-on ability that never helps in combat. Your core roll on that table suggests your Life Core, but you can choose any core you like.\n\n### Spells or numenera?\n\nIn the rules, everything the Life Core does is a spell: it can be countered with *Counterspell*, it needs no material components, and a *Detect Magic* spell senses it. In the world, nobody calls it magic. It's the machine inside you doing what it was built to do. When an effect stops it, describe the graft sparking, stalling, or going dark for a moment."
    }
-  ]
+  ],
+  "bionics": {
+   "core": [
+    [
+     "A palm-sized reactor in the chest. It runs warm and glows red through the skin when he exerts himself.",
+     "Reactor"
+    ],
+    [
+     "A pump in place of the heart, pushing thick black fluid that keeps dead tissue from rotting.",
+     "Black Pump"
+    ],
+    [
+     "Filter-lungs that hiss on every breath, scrubbing out whatever would poison the flesh.",
+     "Filter Lungs"
+    ],
+    [
+     "A battery along the spine, charged by dark panels on the shoulders. He feels sluggish after days without sun.",
+     "Storm Battery"
+    ],
+    [
+     "A crystal heart that rings softly, like a struck glass, when he's calm.",
+     "Any"
+    ],
+    [
+     "A swarm of tiny machines in the blood. Silver scars mark where they gather to repair him.",
+     "Black Pump"
+    ]
+   ],
+   "grafts": [
+    "One eye is a lens that clicks and whirs as it focuses.",
+    "A plate over the temple and cheek, set with tiny dials.",
+    "A metal jaw with steel teeth.",
+    "A ridge of overlapping plates down the spine.",
+    "Two fins rising from the skull, cooling vanes that look like horns.",
+    "A cable-tail with a plug at the tip.",
+    "A whole arm, from the shoulder down.",
+    "One hand, with jointed metal fingers.",
+    "A small glass window in the chest, showing the core at work.",
+    "Breathing vents along the collarbones.",
+    "A heart you can hear ticking from arm's reach.",
+    "Patches of fine metal mesh across the face.",
+    "Metal legs from the knee down, jointed like an animal's.",
+    "Ears replaced by small round grilles.",
+    "A voice box: the voice is flat and slightly metallic.",
+    "All ten fingertips are tiny tools: screwdrivers, picks, a blade, a probe.",
+    "A half-plate covering one side of the skull.",
+    "Lines of glowing fluid running under the skin, like veins of light.",
+    "Hair replaced by fine wire filaments that stir with static.",
+    "Pick any graft, or invent one with the GM."
+   ],
+   "look": [
+    "Brass and rivets, polished by years of handling.",
+    "Smooth white synth, like the Lanterns themselves.",
+    "Black glass, faintly warm.",
+    "Pale ceramic that looks like bone.",
+    "Scrap from many eras, patched together; no two parts match.",
+    "Living metal that slowly heals its own scratches.",
+    "Copper gone green at the edges.",
+    "An iridescent shell, like the inside of a mussel."
+   ],
+   "quirk": [
+    "Hums louder when nervous.",
+    "Ticks audibly in a silent room.",
+    "Smells of hot oil and lightning.",
+    "Glows faintly in total darkness.",
+    "Gets cold fast; always wears too many layers.",
+    "Twitches near strong numenera.",
+    "Picks up stray voices and static while asleep, and sometimes talks back.",
+    "Leaves rust or oil stains on clothes and bedding.",
+    "Small metal objects drift towards him.",
+    "Throws a spark when he sneezes.",
+    "Animals don't trust him: dogs growl, horses shy.",
+    "A light somewhere on him flickers when he lies."
+   ],
+   "perk": [
+    [
+     "Lamp eye",
+     "casts dim light in a 10 ft cone, on or off at will."
+    ],
+    [
+     "Inner clock",
+     "always knows the time of day and which way is north."
+    ],
+    [
+     "Memory spool",
+     "once per long rest, replays word for word up to one minute of speech heard in the last 24 hours."
+    ],
+    [
+     "Tool socket",
+     "one set of tools he's proficient with is built into a hand and can't be lost or taken."
+    ],
+    [
+     "Heat sense",
+     "by touch, knows an object's exact temperature and whether a device has power."
+    ],
+    [
+     "Filter gut",
+     "can eat spoiled food and drink foul water without getting sick (not poison or magic)."
+    ],
+    [
+     "Echo box",
+     "can play back a short sound he has heard (a bell, a voice saying one word, a lock clicking)."
+    ],
+    [
+     "Buzz",
+     "feels a faint tingle when touching a working numenera device. It doesn't tell him what the device does."
+    ],
+    [
+     "Hidden hollow",
+     "a compartment in the body that holds one small object (a key, a cypher). Finding it takes a DC 15 Wisdom (Perception) check."
+    ],
+    [
+     "Magnetic palm",
+     "small iron and steel objects stick to his hand, and he can hang them from his skin."
+    ]
+   ]
+  }
  },
  {
   "n": "Warbred",

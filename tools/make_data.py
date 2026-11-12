@@ -34,12 +34,27 @@ def fetch(src, name, url):
         return f.read()
 
 
+def shins(text):
+    """House rule: money is shins (1 shin = 1 gp), so "50 GP" reads "50 shins"."""
+    t = re.sub(r"\b(\d[\d,]*\+?)\s*(?:GP|gp)\b", r"\1 shins", text)
+    t = re.sub(r"\bgold pieces?\b", "shins", t, flags=re.I)
+    return re.sub(r"\b(?:GP|gp)\b", "shins", t)
+
+
+def cost(c):
+    """5e-bits cost -> shins (1 gp = 1 shin, 1 sp = 0.1, 1 cp = 0.01)."""
+    n = c["quantity"] * {"gp": 1, "sp": 0.1, "cp": 0.01, "ep": 0.5, "pp": 10}.get(c["unit"], 1)
+    n = round(n, 2)
+    n = int(n) if n == int(n) else n
+    return "%s shin%s" % (n, "" if n == 1 else "s")
+
+
 def fix(text):
-    """PDF leftovers: "ex- pended" -> "expended", mojibake, stray spaces."""
+    """PDF leftovers: "ex- pended" -> "expended", mojibake, stray spaces. Money in shins."""
     t = (text or "").replace("â€™", "’").replace("â€”", "—").replace("--", "—")
     t = re.sub(r"(\w)- (?=[a-z])", r"\1", t)
     t = re.sub(r"\n[ \t]+", "\n", t)
-    return t.strip()
+    return shins(t).strip()
 
 
 def skill_id(index):  # "skill-sleight-of-hand" -> "sleight_of_hand"
@@ -123,7 +138,7 @@ def build_srd(src):
     equipment = {}
     for e in j["Equipment"]:
         cats = [x["index"] for x in e["equipment_categories"]]
-        it = {"n": e["name"], "cats": cats, "cost": "%s %s" % (e["cost"]["quantity"], e["cost"]["unit"]),
+        it = {"n": e["name"], "cats": cats, "cost": cost(e["cost"]),
               "wt": e.get("weight", 0)}
         if "damage" in e:
             it.update(dmg=e["damage"]["damage_dice"], dt=e["damage"]["damage_type"]["name"],
@@ -146,7 +161,7 @@ def build_srd(src):
     spells = {}
     for s in j["Spells"]:
         spells[s["index"]] = {"n": s["name"], "lv": s["level"], "sch": s["school"]["name"], "ct": s["casting_time"],
-                              "r": s["range"], "c": ", ".join(s["components"]) + (" (%s)" % s["material"] if s.get("material") else ""),
+                              "r": s["range"], "c": shins(", ".join(s["components"]) + (" (%s)" % s["material"] if s.get("material") else "")),
                               "d": s["duration"], "conc": s["concentration"], "rit": s["ritual"],
                               "cls": [c["index"] for c in s["classes"]], "t": fix(s["description"]),
                               "hi": fix(s.get("higher_level", ""))}
@@ -248,12 +263,35 @@ def species_traits(path):
     return intro, traits
 
 
+def bionics_table(path):
+    """tables/grafted-bionics.md -> {core: [[text, life core]], graft: [text], look, quirk, perk: [[name, text]]}."""
+    with open(path, encoding="utf-8") as f:
+        md = f.read()
+    out = {}
+    for m in re.finditer(r"\n## \d+\. (\w+) \(d(\d+)[^)]*\)\n(.*?)(?=\n## |\Z)", md, re.S):
+        key, rows = m.group(1).lower(), []
+        for line in m.group(3).split("\n"):
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if len(cells) >= 2 and cells[0].isdigit():
+                rows.append(cells[1:])
+        if key == "perk":
+            rows = [list(re.match(r"\*\*(.+?):\*\*\s*(.*)", r[0]).groups()) for r in rows]
+        elif key != "core":
+            rows = [r[0] for r in rows]
+        out[key] = rows
+    return out
+
+
 def build_species(folder):
     out = []
     for key in ORDER:
         sp = dict(SPECIES[key], id=key)
         intro, traits = species_traits(os.path.join(folder, key + ".md"))
         sp["lore"], sp["traits"] = intro, traits
+        if key == "grafted":
+            table = os.path.join(folder, "..", "..", "tables", "grafted-bionics.md")
+            if os.path.exists(table):
+                sp["bionics"] = bionics_table(table)
         out.append(sp)
     return out
 

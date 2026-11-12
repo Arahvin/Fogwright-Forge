@@ -32,13 +32,15 @@
   const sign = n => (n >= 0 ? "+" : "") + n;
   const pbOf = lv => Math.ceil(Math.max(1, lv) / 4) + 1;
   const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
+  // "Name "Nickname"", or whichever of the two there is
+  const fullName = ch => ch.name && ch.nick ? ch.name + " \u201c" + ch.nick + "\u201d" : (ch.name || ch.nick || "Unnamed");
 
   function blank() {
     return {
-      fv: 1, id: "c" + Math.random().toString(36).slice(2, 10), name: "", player: "", created: Date.now(), updated: Date.now(),
+      fv: 1, id: "c" + Math.random().toString(36).slice(2, 10), name: "", nick: "", player: "", created: Date.now(), updated: Date.now(),
       classes: [{ id: "", lv: 1, sub: "" }],
       hp: { method: "avg", rolls: {} },
-      sp: { id: "", size: "", line: "", abil: "", skill: "", keen: "", feat: "", featData: {} },
+      sp: { id: "", size: "", line: "", abil: "", skill: "", keen: "", feat: "", featData: {}, bio: { rolled: {}, pick: {}, custom: "" } },
       bg: { id: "", mode: "21", p2: "", p1: "", p111: [], tool: "", featData: {} },
       ab: { method: "array", base: { str: 8, dex: 8, con: 8, int: 8, wis: 8, cha: 8 }, assign: {}, rolled: [] },
       skills: [], exp: [],
@@ -280,6 +282,32 @@
     return out;
   }
 
+  // ---------------------------------------------------------------- Grafted bionics (tables/grafted-bionics.md)
+
+  const BIO_SLOTS = [["core", "core", 6], ["g1", "grafts", 20], ["g2", "grafts", 20], ["look", "look", 8], ["quirk", "quirk", 12], ["perk", "perk", 10]];
+  function bionics(ch) {
+    const s = species(ch);
+    if (!s || !s.bionics) return null;
+    const b = ch.sp.bio || { rolled: {}, pick: {} }, out = {};
+    BIO_SLOTS.forEach(([k, tbl]) => {
+      const i = b.pick[k] !== undefined && b.pick[k] !== "" ? +b.pick[k] : (b.rolled[k] !== undefined ? +b.rolled[k] : -1);
+      const row = s.bionics[tbl][i];
+      out[k] = row === undefined ? null : { i, row, text: tbl === "core" ? row[0] : tbl === "perk" ? row[0] + ": " + row[1] : row };
+      if (out[k] && tbl === "grafts" && i === 19 && b.custom) out[k].text = b.custom;
+    });
+    const rolledAll = BIO_SLOTS.every(([k]) => b.rolled[k] !== undefined);
+    out.swaps = rolledAll ? BIO_SLOTS.filter(([k]) => b.pick[k] !== undefined && b.pick[k] !== "" && +b.pick[k] !== +b.rolled[k]).length : 0;
+    out.done = BIO_SLOTS.every(([k]) => out[k]);
+    return out;
+  }
+  function rollBionics(ch) {
+    const d = n => Math.floor(Math.random() * n);
+    const r = {};
+    BIO_SLOTS.forEach(([k, , n]) => { r[k] = d(n); });
+    while (r.g2 === r.g1) r.g2 = d(20);
+    ch.sp.bio = { rolled: r, pick: {}, custom: "" };
+  }
+
   // ---------------------------------------------------------------- the sheet
 
   function compute(ch) {
@@ -350,11 +378,14 @@
     if (s) s.traits.forEach(tr => {
       if ((tr.n === "Celestial Revelation" && L < 3) || (tr.n === "Draconic Flight" && L < 5)) return;
       let text = tr.t;
+      const bio = tr.n === "Bionic Body" ? bionics(ch) : null;
+      if (bio && bio.done) text = "**Your bionics.** Core: " + bio.core.text + " Grafts: " + bio.g1.text + " " + bio.g2.text + " Look: " + bio.look.text + " Quirk: " + bio.quirk.text + " Perk: " + bio.perk.text + "\n\n" + text;
       if (ln && /Lineage|Life Core|Ancestry/.test(tr.n)) text = "**Your choice: " + ln.n + ".**\n\n" + text;
       const u = s.uses && s.uses[tr.n];
       const [n, rc] = usesOf(u);
       features.push({ name: tr.n, text, uses: n, recharge: rc, src: s.n });
     });
+    { const bio = bionics(ch); if (bio && bio.perk) features.push({ name: "Perk: " + bio.perk.row[0], text: bio.perk.row[1] + " (Never helps in combat; the GM can veto it in a scene.)", uses: 0, recharge: "", src: "Bionics" }); }
     if (ln && ln.uses) Object.keys(ln.uses).forEach(k => { const [n, rc] = usesOf(ln.uses[k]); features.push({ name: k, text: "", uses: n, recharge: rc, src: s.n }); });
     feats(ch).forEach(f => {
       const ft = feat(f.id);
@@ -446,7 +477,7 @@
 
     const sub = SRD.subclasses[(ch.classes[0] || {}).sub];
     return {
-      name: ch.name || "Unnamed", level: L, pb, scores: sc, mods: m, saves: c ? c.saves : [], skills: sk.prof, skillSrc: sk.src,
+      name: fullName(ch), level: L, pb, scores: sc, mods: m, saves: c ? c.saves : [], skills: sk.prof, skillSrc: sk.src,
       skillBonus, hp, hd: L + "d" + hd, ac, acNote, speed, senses, passive, init, res: [...res], langs, training: t,
       features, attacks, spells, slots: lim ? lim.slots : [0, 0, 0, 0, 0, 0, 0, 0, 0], castAbil,
       dc: castAbil ? 8 + pb + m[castAbil] : 0, spellAtk: castAbil ? pb + m[castAbil] : 0,
@@ -472,9 +503,9 @@
       "_Made with Fogwright Forge " + (version || "") + "._"
     ].filter(Boolean).join("\n\n");
     const items = ch.items.map(i => ({ name: i.name, qty: i.qty, equipped: !!i.equipped, cat: i.cat || "", notes: i.notes || "" }));
-    if (ch.gp) items.push({ name: "Shins", qty: ch.gp, equipped: false, cat: "Money", notes: "1 shin = 1 gp" });
+    if (ch.gp) items.push({ name: "Shins", qty: ch.gp, equipped: false, cat: "Money", notes: "" });
     return {
-      kind: "pc", name: (ch.name || "Unnamed").slice(0, 60), owner: (ch.player || "").slice(0, 40), level: s.level, cr: "",
+      kind: "pc", name: fullName(ch).slice(0, 60), owner: (ch.player || "").slice(0, 40), level: s.level, cr: "",
       cls: s.clsText.slice(0, 80), species: s.speciesText.slice(0, 60), background: s.bgText, size: s.size,
       abil: s.scores, saves: s.saves, skills: s.skills, ac: s.ac, ac_note: s.acNote.slice(0, 80), hp_max: s.hp,
       hit_dice: s.hd, speed: s.speed + " ft", init: s.init, pb: s.pb, senses: s.senses.slice(0, 120),
@@ -492,7 +523,7 @@
 
   window.Rules = {
     ABILS, ABIL_NAMES, SKILLS, SKILL_NAMES, SPECIES, STANDARD, POINT_COST, mod, sign, pbOf, cap,
-    blank, cls, clsId, level, species, line, background, feat, feats, spell, item, itemName, levelRow,
+    blank, fullName, BIO_SLOTS, bionics, rollBionics, cls, clsId, level, species, line, background, feat, feats, spell, item, itemName, levelRow,
     baseScores, pointsSpent, bgBonus, scores, training, weaponProficient, skillProfs, spellList, spellLimits,
     classSpells, startingGear, expandEquip, compute, toVTT
   };

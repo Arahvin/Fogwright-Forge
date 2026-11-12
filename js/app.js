@@ -1,7 +1,7 @@
 // Fogwright Forge: the builder screens.
 (function () {
   "use strict";
-  const VERSION = "v3";
+  const VERSION = "v4";
   const R = window.Rules, SRD = window.SRD, X = window.EXTRA;
   const KEY = "forge-chars-v1", PREF = "forge-prefs-v1";
 
@@ -19,7 +19,7 @@
 
   // ---------------------------------------------------------------- helpers
 
-  const T = s => (prefs.lang === "pt" && window.I18N.pt[s]) || s;
+  const T = s => (prefs.lang === "pt" && window.I18N.pt[s]) || window.I18N.en[s] || s;
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   const attr = esc;
   const $ = s => document.querySelector(s);
@@ -135,6 +135,7 @@
       if (s.spellAbil && !ch.sp.abil) missing.push("species");
       if (s.skill === "any" && !ch.sp.skill) missing.push("species");
       if (s.keen && !ch.sp.keen) missing.push("species");
+      if (s.bionics && !(R.bionics(ch) || {}).done) missing.push("species");
       if (s.originFeat && (!ch.sp.feat || !featDone(ch.sp.feat, ch.sp.featData))) missing.push("species");
     }
     // abilities
@@ -148,7 +149,7 @@
     const lim = R.spellLimits(ch);
     if (lim && (ch.spells.cantrips.length < lim.cantrips || ch.spells.prepared.length < lim.prepared)) missing.push("spells");
     // details
-    if (!ch.name || ch.ch.langs.filter(Boolean).length < 2) missing.push("details");
+    if (!(ch.name || ch.nick) || ch.ch.langs.filter(Boolean).length < 2) missing.push("details");
     ["class", "background", "species", "abilities", "equipment", "spells", "details"].forEach(k => { n[k] = !missing.includes(k); });
     return n;
   }
@@ -304,7 +305,28 @@
       h += '<div class="choice"><h4>Versatile: ' + T("Origin feat") + " " + status(ch.sp.feat && featDone(ch.sp.feat, ch.sp.featData) ? 1 : 0, 1) + "</h4>" + pick("sp.feat", origin, { reset: "sp.featData" }) +
         (ch.sp.feat ? featChoices(ch.sp.feat, "sp.featData") : "") + "</div>";
     }
+    if (s.bionics) h += bionicsUI(s);
     h += '<div class="choice"><h4>' + T("Traits") + "</h4>" + s.traits.map(t => "<details" + (t.n.length ? "" : "") + "><summary>" + esc(t.n) + "</summary>" + md(t.t) + "</details>").join("") + "</div>";
+    return h + "</div>";
+  }
+
+  function bionicsUI(s) {
+    const b = cur.sp.bio || (cur.sp.bio = { rolled: {}, pick: {}, custom: "" }), bio = R.bionics(cur), B = s.bionics;
+    const label = { core: "Core (d6)", g1: "Graft 1 (d20)", g2: "Graft 2 (d20)", look: "Look (d8)", quirk: "Quirk (d12)", perk: "Perk (d10)" };
+    const rows = { core: B.core.map(r => r[0] + (r[1] ? " [" + r[1] + "]" : "")), g1: B.grafts, g2: B.grafts, look: B.look, quirk: B.quirk, perk: B.perk.map(r => r[0] + ": " + r[1]) };
+    const rolled = Object.keys(b.rolled || {}).length > 0;
+    let h = '<div class="choice"><h4>' + T("Bionics") + " " + status(bio && bio.done ? 1 : 0, 1) + "</h4>" +
+      '<p class="small muted">' + esc(T("bioHelp")) + "</p>" +
+      '<div class="row" style="margin-bottom:8px"><button data-act="rollBio">' + (rolled ? T("Roll again") : T("Roll the bionics")) + "</button>" +
+      (bio && bio.swaps > 1 ? '<span class="need">' + esc(T("bioSwaps")) + "</span>" : "") + "</div>";
+    h += '<div class="form">' + R.BIO_SLOTS.map(([k]) => {
+      const cur_ = b.pick[k] !== undefined && b.pick[k] !== "" ? +b.pick[k] : (b.rolled[k] !== undefined ? +b.rolled[k] : "");
+      const opts = rows[k].map((txt, i) => '<option value="' + i + '"' + (cur_ === i ? " selected" : "") + ">" + (i + 1) + ". " + esc(txt) + (b.rolled[k] === i ? " 🎲" : "") + "</option>").join("");
+      return "<span>" + label[k] + '</span><select data-bio="' + k + '" style="width:100%"><option value="">—</option>' + opts + "</select>";
+    }).join("") + "</div>";
+    if ([b.pick.g1, b.pick.g2, b.rolled.g1, b.rolled.g2].some(v => +v === 19) && bio && ((bio.g1 && bio.g1.i === 19) || (bio.g2 && bio.g2.i === 19)))
+      h += '<div class="form" style="margin-top:6px"><span>' + T("Your own graft") + '</span><input data-set="sp.bio.custom" value="' + attr(b.custom || "") + '"></div>';
+    if (bio && bio.core && B.core[bio.core.i][1] && B.core[bio.core.i][1] !== "Any") h += '<p class="small muted">' + esc(T("Suggested Life Core")) + ": " + esc(B.core[bio.core.i][1]) + "</p>";
     return h + "</div>";
   }
 
@@ -339,10 +361,10 @@
     const ch = cur, id = R.clsId(ch), bg = R.background(ch);
     let h = '<div class="panel"><h2>' + T("Starting gear") + "</h2>";
     const ce = X.classEquip[id];
-    const show = list => list.map(e => { let [r, q, n] = Array.isArray(e) ? e : [e, 1, ""]; if (r === "gp") return q + " " + T("gold"); return (q > 1 ? q + " × " : "") + (r.startsWith("@") ? "(" + r.slice(1) + ")" : R.itemName(r)) + (n ? " (" + n + ")" : ""); }).join(", ");
+    const show = list => list.map(e => { let [r, q, n] = Array.isArray(e) ? e : [e, 1, ""]; if (r === "gp") return q + " " + T("shins"); return (q > 1 ? q + " × " : "") + (r.startsWith("@") ? "(" + r.slice(1) + ")" : R.itemName(r)) + (n ? " (" + n + ")" : ""); }).join(", ");
     if (ce) h += "<h4>" + T("Class") + ": " + esc(SRD.classes[id].n) + "</h4>" + pick("equip.cls", ce.map((l, i) => ["abc"[i], "abc"[i].toUpperCase() + ") " + show(l)]));
     else h += '<p class="muted">' + T("Choose") + " " + T("Class").toLowerCase() + ".</p>";
-    if (bg) h += "<h4 style=\"margin-top:10px\">" + T("Background") + ": " + esc(bg.n) + "</h4>" + pick("equip.bg", [["a", "A) " + show(bg.equip)], ["b", "B) 50 " + T("gold")]]);
+    if (bg) h += "<h4 style=\"margin-top:10px\">" + T("Background") + ": " + esc(bg.n) + "</h4>" + pick("equip.bg", [["a", "A) " + show(bg.equip)], ["b", "B) 50 " + T("shins")]]);
     const needs = new Set();
     const scan = l => (l || []).forEach(e => { const r = Array.isArray(e) ? e[0] : e; if (r.startsWith("@") && !["@bgTool", "@monkTool"].includes(r)) needs.add(r); });
     if (ce && ch.equip.cls) scan(ce["abc".indexOf(ch.equip.cls)]);
@@ -389,7 +411,7 @@
     const ch = cur, L = X.languages;
     const langs = [...L.standard, ...L.rare.filter(x => !["Druidic", "Thieves' Cant"].includes(x))];
     let h = '<div class="panel"><h2>' + T("Details") + '</h2><div class="form">' +
-      "<span>" + T("Character name") + '</span><input data-set="name" value="' + attr(ch.name) + '">' +
+      "<span>" + T("Character name") + '</span><div class="row"><input data-set="name" value="' + attr(ch.name) + '" style="flex:2;min-width:140px"><label class="row" style="gap:6px;flex:1;min-width:140px">' + T("Nickname") + ' <input data-set="nick" value="' + attr(ch.nick || "") + '" style="flex:1;min-width:0"></label></div>' +
       "<span>" + T("Player (VTT name)") + '</span><div><input data-set="player" value="' + attr(ch.player) + '"><div class="small muted">The name the player logs in with in Fogwright VTT, so the sheet is theirs.</div></div>' +
       "</div>";
     h += '<div class="choice"><h4>' + T("Languages") + " " + status(ch.ch.langs.filter(Boolean).length, 2) + '</h4><p class="small muted">' + esc(L.common) + " + 2. " + T("Choose") + " 2.</p>" + chips("ch.langs", langs, 2) + "</div>";
@@ -405,7 +427,7 @@
       esc([s.clsText, s.speciesText, s.bgText, s.size].filter(Boolean).join(" · ")) + (s.label ? ' <span class="badge acc">' + esc(s.label) + "</span>" : "") + "</div></div>" +
       '<div class="spacer"></div><div class="row noprint"><button class="primary" data-act="exportVTT">' + T("Export for Fogwright VTT") + '</button><button data-act="saveFile">' + T("Save Forge file") + '</button><button data-act="print">' + T("Print") + "</button></div></div>";
     h += '<details class="noprint"><summary class="small">' + T("How to bring it into the VTT") + '</summary><p class="small">' +
-      esc(prefs.lang === "pt" ? T("vttHelp") : "In Fogwright VTT, the GM opens the Sheets tab, presses Import and picks this .json file. The sheet arrives as it is here, owned by the player named in \"Player\".") + "</p></details>";
+      esc(T("vttHelp")) + "</p></details>";
     if (s.warn.length) h += '<div style="margin-top:8px">' + s.warn.map(w => '<div class="warn">' + esc(w) + "</div>").join("") + "</div>";
     h += "</div>";
     h += '<div class="panel"><div class="abil">' + AB.map(k => '<div class="abox"><div class="k">' + AN[k] + '</div><div class="v">' + s.scores[k] + '</div><div class="m">' + R.sign(s.mods[k]) + "</div></div>").join("") + "</div>";
@@ -443,7 +465,7 @@
   function home() {
     let h = '<div class="panel"><div class="row"><h2 style="margin:0">' + T("Characters") + '</h2><div class="spacer"></div><button class="primary" data-act="new">' + T("New character") + '</button>' +
       '<label class="row" style="gap:6px"><button data-act="importPick">' + T("Import a Forge file") + '</button><input type="file" id="importFile" accept=".json,application/json" hidden></label></div>' +
-      '<p class="small muted">' + esc(prefs.lang === "pt" ? T("homeHelp") : "Characters are kept in this browser. Use \"Save Forge file\" to keep a copy or move to another computer.") + "</p>";
+      '<p class="small muted">' + esc(T("homeHelp")) + "</p>";
     if (!chars.length) h += '<p class="muted">' + T("No characters yet.") + "</p>";
     h += '<div class="list">' + chars.slice().sort((a, b) => b.updated - a.updated).map(c => {
       const s = R.compute(c);
@@ -470,7 +492,7 @@
     if (prefs.theme) document.documentElement.setAttribute("data-theme", prefs.theme); else document.documentElement.removeAttribute("data-theme");
     const y = window.scrollY;
     $("#app").innerHTML = '<header class="top"><span class="brand" data-act="home">⚒ Fogwright Forge</span>' +
-      (cur ? '<span class="who">' + esc(cur.name || "Unnamed") + "</span>" : "") + '<div class="spacer"></div>' +
+      (cur ? '<span class="who">' + esc(R.fullName(cur)) + "</span>" : "") + '<div class="spacer"></div>' +
       (cur ? '<button data-act="home">' + T("Characters") + "</button>" : "") +
       '<button data-act="lang" title="Language / Língua">' + (prefs.lang === "pt" ? "EN" : "PT") + '</button><button data-act="theme" title="' + attr(T("Theme")) + '">◐</button></header>' +
       "<main>" + (cur ? builder() : home()) + "</main>" +
@@ -508,6 +530,7 @@
       save(); render();
     },
     setSpecies(v) { if (cur.sp.id === v) return; cur.sp = { id: v, size: R.SPECIES[v].size.length === 1 ? R.SPECIES[v].size[0] : "", line: "", abil: "", skill: "", keen: "", feat: "", featData: {} }; save(); render(); },
+    rollBio() { R.rollBionics(cur); save(); render(); },
     roll4d6() {
       cur.ab.rolled = [0, 1, 2, 3, 4, 5].map(() => { const d = [0, 0, 0, 0].map(() => 1 + Math.floor(Math.random() * 6)).sort((a, b) => b - a); return d[0] + d[1] + d[2]; });
       cur.ab.assign = {}; save(); render();
@@ -577,6 +600,7 @@
     if (t.dataset.multi) { toggleMulti(t.dataset.multi, t.dataset.v, +t.dataset.max); return; }
     if (t.dataset.one) { setOne(t.dataset.one, t.dataset.v, t.dataset.reset); return; }
     if (t.dataset.check) { setPath(cur, t.dataset.check, t.checked); save(); render(); return; }
+    if (t.dataset.bio) { cur.sp.bio = cur.sp.bio || { rolled: {}, pick: {}, custom: "" }; cur.sp.bio.pick[t.dataset.bio] = t.value === "" ? "" : +t.value; save(); render(); return; }
     if (t.dataset.assign) { cur.ab.assign[t.dataset.assign] = t.value === "" ? "" : +t.value; save(); render(); return; }
     if (t.dataset.roll !== undefined) { const v = parseInt(t.value, 10); cur.ab.rolled[+t.dataset.roll] = isNaN(v) ? undefined : Math.max(3, Math.min(18, v)); cur.ab.rolled = Array.from({ length: 6 }, (_, i) => cur.ab.rolled[i]).filter(x => x !== undefined && x !== null); save(); render(); return; }
     if (t.dataset.set) { setPath(cur, t.dataset.set, t.dataset.num ? Math.max(0, parseInt(t.value, 10) || 0) : t.value); save(); render(); }
