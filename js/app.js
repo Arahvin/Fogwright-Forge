@@ -1,7 +1,7 @@
 // Fogwright Forge: the builder screens.
 (function () {
   "use strict";
-  const VERSION = "v4";
+  const VERSION = "v5";
   const R = window.Rules, SRD = window.SRD, X = window.EXTRA;
   const KEY = "forge-chars-v1", PREF = "forge-prefs-v1";
 
@@ -296,7 +296,11 @@
     if (!s) return h;
     h += '<div class="panel"><h2>' + esc(s.n) + ' <span class="badge">' + esc(s.rules) + "</span></h2>" + md(s.lore);
     if (s.size.length > 1) h += '<div class="choice"><h4>' + T("Size") + " " + status(ch.sp.size ? 1 : 0, 1) + "</h4>" + pick("sp.size", s.size) + "</div>";
-    if (s.lines) h += '<div class="choice"><h4>' + esc(s.lineLabel) + " " + status(ch.sp.line ? 1 : 0, 1) + "</h4>" + pick("sp.line", Object.keys(s.lines).map(k => [k, s.lines[k].n])) + "</div>";
+    if (s.lines) {
+      const sug = s.bionics ? coreLine() : "";
+      h += '<div class="choice"><h4>' + esc(s.lineLabel) + " " + status(ch.sp.line ? 1 : 0, 1) + "</h4>" + pick("sp.line", Object.keys(s.lines).map(k => [k, s.lines[k].n])) +
+        (s.bionics ? '<p class="small muted">' + esc(T("coreHelp")) + (sug && ch.sp.line && sug !== ch.sp.line ? " " + esc(T("coreDiffers")).replace("{x}", s.lines[sug].n) : "") + "</p>" : "") + "</div>";
+    }
     if (s.spellAbil) h += '<div class="choice"><h4>' + T("Spellcasting ability") + " " + status(ch.sp.abil ? 1 : 0, 1) + "</h4>" + pick("sp.abil", [["int", "Intelligence"], ["wis", "Wisdom"], ["cha", "Charisma"]]) + "</div>";
     if (s.keen) h += '<div class="choice"><h4>Keen Senses ' + status(ch.sp.keen ? 1 : 0, 1) + "</h4>" + pick("sp.keen", s.keen.map(k => [k, SN[k]])) + "</div>";
     if (s.skill === "any") h += '<div class="choice"><h4>Skillful ' + status(ch.sp.skill ? 1 : 0, 1) + "</h4>" + select("sp.skill", Object.keys(R.SKILLS).map(k => [k, SN[k]])) + "</div>";
@@ -309,6 +313,15 @@
     h += '<div class="choice"><h4>' + T("Traits") + "</h4>" + s.traits.map(t => "<details" + (t.n.length ? "" : "") + "><summary>" + esc(t.n) + "</summary>" + md(t.t) + "</details>").join("") + "</div>";
     return h + "</div>";
   }
+
+  // the bionic core picks the Life Core it goes with (the player can still choose another one)
+  function coreLine() {
+    const s = R.species(cur), bio = R.bionics(cur);
+    if (!s || !s.lines || !bio || !bio.core) return "";
+    const want = (s.bionics.core[bio.core.i] || [])[1] || "";
+    return Object.keys(s.lines).find(k => s.lines[k].n === want) || "";
+  }
+  function syncCore() { const k = coreLine(); if (k) cur.sp.line = k; }
 
   function bionicsUI(s) {
     const b = cur.sp.bio || (cur.sp.bio = { rolled: {}, pick: {}, custom: "" }), bio = R.bionics(cur), B = s.bionics;
@@ -326,7 +339,7 @@
     }).join("") + "</div>";
     if ([b.pick.g1, b.pick.g2, b.rolled.g1, b.rolled.g2].some(v => +v === 19) && bio && ((bio.g1 && bio.g1.i === 19) || (bio.g2 && bio.g2.i === 19)))
       h += '<div class="form" style="margin-top:6px"><span>' + T("Your own graft") + '</span><input data-set="sp.bio.custom" value="' + attr(b.custom || "") + '"></div>';
-    if (bio && bio.core && B.core[bio.core.i][1] && B.core[bio.core.i][1] !== "Any") h += '<p class="small muted">' + esc(T("Suggested Life Core")) + ": " + esc(B.core[bio.core.i][1]) + "</p>";
+    if (bio && bio.core && B.core[bio.core.i][1]) h += '<p class="small muted">' + esc(T("Suggested Life Core")) + ": " + esc(B.core[bio.core.i][1] === "Any" ? T("any") : B.core[bio.core.i][1]) + "</p>";
     return h + "</div>";
   }
 
@@ -530,7 +543,7 @@
       save(); render();
     },
     setSpecies(v) { if (cur.sp.id === v) return; cur.sp = { id: v, size: R.SPECIES[v].size.length === 1 ? R.SPECIES[v].size[0] : "", line: "", abil: "", skill: "", keen: "", feat: "", featData: {} }; save(); render(); },
-    rollBio() { R.rollBionics(cur); save(); render(); },
+    rollBio() { R.rollBionics(cur); syncCore(); save(); render(); },
     roll4d6() {
       cur.ab.rolled = [0, 1, 2, 3, 4, 5].map(() => { const d = [0, 0, 0, 0].map(() => 1 + Math.floor(Math.random() * 6)).sort((a, b) => b - a); return d[0] + d[1] + d[2]; });
       cur.ab.assign = {}; save(); render();
@@ -600,7 +613,7 @@
     if (t.dataset.multi) { toggleMulti(t.dataset.multi, t.dataset.v, +t.dataset.max); return; }
     if (t.dataset.one) { setOne(t.dataset.one, t.dataset.v, t.dataset.reset); return; }
     if (t.dataset.check) { setPath(cur, t.dataset.check, t.checked); save(); render(); return; }
-    if (t.dataset.bio) { cur.sp.bio = cur.sp.bio || { rolled: {}, pick: {}, custom: "" }; cur.sp.bio.pick[t.dataset.bio] = t.value === "" ? "" : +t.value; save(); render(); return; }
+    if (t.dataset.bio) { cur.sp.bio = cur.sp.bio || { rolled: {}, pick: {}, custom: "" }; cur.sp.bio.pick[t.dataset.bio] = t.value === "" ? "" : +t.value; if (t.dataset.bio === "core") syncCore(); save(); render(); return; }
     if (t.dataset.assign) { cur.ab.assign[t.dataset.assign] = t.value === "" ? "" : +t.value; save(); render(); return; }
     if (t.dataset.roll !== undefined) { const v = parseInt(t.value, 10); cur.ab.rolled[+t.dataset.roll] = isNaN(v) ? undefined : Math.max(3, Math.min(18, v)); cur.ab.rolled = Array.from({ length: 6 }, (_, i) => cur.ab.rolled[i]).filter(x => x !== undefined && x !== null); save(); render(); return; }
     if (t.dataset.set) { setPath(cur, t.dataset.set, t.dataset.num ? Math.max(0, parseInt(t.value, 10) || 0) : t.value); save(); render(); }

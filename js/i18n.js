@@ -5,6 +5,8 @@ window.I18N = {
     "bioHelp": "Roll each step once (or type in what you rolled at the table). Then you may swap ONE result for any entry from the same table. The GM approves the final set.",
     "bioSwaps": "More than one rolled result was changed: the rule allows one swap (the GM decides).",
     "vttHelp": "In Fogwright VTT, the GM opens the Sheets tab, presses Import and picks this .json file. The sheet arrives as it is here, owned by the player named in \"Player\".",
+    "coreHelp": "The Life Core is the rules side of your bionic core. Choosing a core below picks its Life Core for you; you can still choose another.",
+    "coreDiffers": "Your core suggests {x}.",
     "homeHelp": "Characters are kept in this browser. Use \"Save Forge file\" to keep a copy or move to another computer."
   },
   pt: {
@@ -44,6 +46,8 @@ window.I18N = {
     "Theme": "Tema", "How to bring it into the VTT": "Como levar para o VTT",
     "vttHelp": "No Fogwright VTT, o Mestre abre o separador Fichas, carrega em Importar e escolhe este ficheiro .json. A ficha fica igual à daqui, com o dono indicado em \"Jogador\".",
     "homeHelp": "As personagens ficam guardadas neste navegador. Usa \"Guardar ficheiro do Forge\" para ter uma cópia ou mudar de computador.",
+    "coreHelp": "O Núcleo Vital é o lado das regras do teu núcleo biónico. Escolher o núcleo em baixo escolhe o Núcleo Vital correspondente; podes escolher outro na mesma.",
+    "coreDiffers": "O teu núcleo sugere {x}.", "any": "qualquer um",
     "Nickname": "Alcunha", "Bionics": "Biónica", "Roll the bionics": "Rolar a biónica", "Roll again": "Rolar outra vez",
     "Your own graft": "O teu enxerto", "Suggested Life Core": "Núcleo Vital sugerido",
     "bioHelp": "Rola cada passo uma vez (ou escreve o que rolaste à mesa). Depois podes trocar UM resultado por qualquer outro da mesma tabela. O Mestre aprova o conjunto final.",
