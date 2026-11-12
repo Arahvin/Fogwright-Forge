@@ -1,7 +1,7 @@
 // Fogwright Forge: the builder screens.
 (function () {
   "use strict";
-  const VERSION = "v19";
+  const VERSION = "v20";
   const R = window.Rules, SRD = window.SRD, X = window.EXTRA;
   const KEY = "forge-chars-v1", PREF = "forge-prefs-v1";
 
@@ -809,6 +809,7 @@
     const L = X.languages, to = {};
     L.standard.concat(L.rare).forEach(([n, dnd]) => { to[dnd] = n; });
     c.ch.langs = (c.ch.langs || []).map(v => to[v] || v);
+    R.migratePlans(c);
     return c;
   }
   chars = chars.map(fixUp);

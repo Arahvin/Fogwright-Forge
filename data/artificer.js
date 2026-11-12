@@ -1,4 +1,6 @@
-// The Artificer, from Unearthed Arcana 2024 "The Artificer" (playtest material, (c) Wizards of the Coast).
+// The Artificer as in Eberron: Forge of the Artificer (2025): class features and plan tables follow its
+// final playtest, Unearthed Arcana 2025 "Eberron Updates" (Cartographer); the Alchemist, Armorer, Artillerist
+// and Battle Smith still follow Unearthed Arcana 2024 "The Artificer" ((c) Wizards of the Coast).
 // Not part of the free SRD: here are only the numbers and short summaries in our own words. Read the UA PDF for the full text.
 // Allowed in the Lantern Marches by the GM. Loaded after srd.js and merged into it by js/rules.js.
 window.ARTIFICER = (function () {
@@ -12,8 +14,8 @@ window.ARTIFICER = (function () {
     [4, 14, slots(4, 3, 3, 3, 1), 7, 5], [4, 14, slots(4, 3, 3, 3, 1), 8, 6], [4, 15, slots(4, 3, 3, 3, 2), 8, 6], [4, 15, slots(4, 3, 3, 3, 2), 8, 6]
   ];
   const feats = {
-    1: ["artificer-magical-tinkering", "artificer-spellcasting"], 2: ["artificer-replicate-magic-item"],
-    3: ["artificer-subclass", "artificer-right-tool-for-the-job"], 4: ["artificer-ability-score-improvement"],
+    1: ["artificer-tinkers-magic", "artificer-spellcasting"], 2: ["artificer-replicate-magic-item"],
+    3: ["artificer-subclass"], 4: ["artificer-ability-score-improvement"],
     6: ["artificer-magic-item-tinker"], 7: ["artificer-flash-of-genius"], 8: ["artificer-ability-score-improvement"],
     10: ["artificer-magic-item-adept"], 11: ["artificer-spell-storing-item"], 12: ["artificer-ability-score-improvement"],
     14: ["artificer-magic-item-savant"], 16: ["artificer-ability-score-improvement"], 18: ["artificer-magic-item-master"],
@@ -31,67 +33,64 @@ window.ARTIFICER = (function () {
       prof: ["light-armor", "medium-armor", "shields", "simple-weapons", "tool-thieves-tools", "tool-tinkers-tools"],
       skills: { n: 2, from: ["arcana", "history", "investigation", "medicine", "nature", "perception", "sleight_of_hand"] },
       tools: [{ n: 1, desc: "One type of Artisan's Tools of your choice", from: [] }],
-      equip: { desc: "", options: [] }, cast: "int", lv, subs: ["alchemist", "armorer", "artillerist", "battle-smith"],
+      equip: { desc: "", options: [] }, cast: "int", lv, subs: ["alchemist", "armorer", "artillerist", "battle-smith", "cartographer"],
       mc: { pre: [["int", 13]], prof: ["light-armor", "medium-armor", "shields"] }
     },
     equip: [["studded-leather-armor", "dagger", "thieves-tools", "tinkers-tools", "dungeoneers-pack", ["gp", 16]], [["gp", 150]]],
     label: "Nano",
     features: {
-      "artificer-magical-tinkering": F("Magical Tinkering", 1,
-        "As a Magic action while holding Tinker's Tools, you make one ordinary item appear in an empty space within 5 ft: Ball Bearings, Basket, Bedroll, Bell, Blanket, Block and Tackle, Bucket, Caltrops, Candle, Crowbar, Flask, Jug, Lamp, Net, Oil, Paper, Parchment, Pole, Pouch, Rope, Sack, Shovel, String, Tinderbox, Torch or Vial. It vanishes after 1 hour.\n\nUses: your Intelligence modifier (minimum 1), regained on a Long Rest."),
+      "artificer-tinkers-magic": F("Tinker's Magic", 1,
+        "You know the Mending cantrip.\n\nAs a Magic action while holding Tinker's Tools, you make one ordinary item appear in an empty space within 5 ft: Ball Bearings, Basket, Bedroll, Bell, Blanket, Block and Tackle, Bucket, Caltrops, Candle, Crowbar, Flask, Jug, Lamp, Net, Oil, Paper, Parchment, Pole, Pouch, Rope, Sack, Shovel, String, Tinderbox, Torch or Vial. It lasts until you finish a Long Rest.\n\nUses: your Intelligence modifier (minimum 1), regained on a Long Rest."),
       "artificer-spellcasting": F("Spellcasting", 1,
         "You cast Artificer spells through tools: Thieves' Tools, Tinker's Tools or Artisan's Tools you are proficient with are your Spellcasting Focus, and you must hold one to cast an Artificer spell. Intelligence is your spellcasting ability.\n\n**Cantrips.** You know two (Acid Splash and Prestidigitation are suggested). After each Long Rest you can swap one. You learn more at levels 10 and 14.\n**Prepared spells.** Start with two level 1 Artificer spells (Cure Wounds and Grease are suggested); the number grows with the table. After each Long Rest you can change the list.\n**Slots.** Half-caster slots (see the Artificer table), regained on a Long Rest."),
       "artificer-replicate-magic-item": F("Replicate Magic Item", 2,
-        "You learn magic item plans (4 at level 2, more later) from the Artificer plan lists: at level 2 Alchemy Jug, Bag of Holding, Cap of Water Breathing, a Common item (not a Potion, Scroll or cursed), Goggles of Night, Rope of Climbing, Sending Stones, Shield +1, Wand of Magic Detection, Wand of Secrets, Wand of the War Mage +1 or Weapon +1. Each level you can swap one plan.\n\nAfter a Long Rest with Tinker's Tools in hand, you create one or two items from your plans (more at higher levels). They work like the real item; if you go over your limit the oldest vanishes, and they vanish 1d4 days after you die. You can attune to a new item the moment you make it."),
-      "artificer-subclass": F("Artificer Subclass", 3, "Choose a subclass: Alchemist, Armorer, Artillerist or Battle Smith."),
-      "artificer-right-tool-for-the-job": F("Right Tool for the Job", 3, "Magical Tinkering can now also make Artisan's Tools."),
+        "You learn magic item plans from the Artificer plan tables (4 at level 2 from the level 2+ table, more later). Each time you gain an Artificer level you can swap one plan for another you qualify for.\n\nWhen you finish a Long Rest with Tinker's Tools in hand, you make one or two magic items (more at higher levels), each from a different plan. They work like the real item; if you go over your limit the oldest vanishes. An item vanishes if you swap out its plan, and 1d4 days after you die; a container's contents appear around it. You can attune to an item the moment you make it. A Wand or Weapon you make can be your Spellcasting Focus."),
+      "artificer-subclass": F("Artificer Subclass", 3, "Choose a subclass: Alchemist, Armorer, Artillerist, Battle Smith or Cartographer."),
       "artificer-ability-score-improvement": F("Ability Score Improvement", 4, "Take the Ability Score Improvement feat or another feat you qualify for. Again at levels 8, 12 and 16."),
       "artificer-magic-item-tinker": F("Magic Item Tinker", 6,
-        "**Drain Magic Item.** Bonus Action, once per Long Rest: touch an item you made with Replicate Magic Item within 5 ft; it vanishes and becomes a spell slot (level 1 for Common, level 2 for Uncommon or Rare) that lasts until your next Long Rest.\n**Expanded Replication.** You can learn plans from the level 6+ list (Armor +1, Boots of Elvenkind, Cloak of Elvenkind, Cloak of the Manta Ray, Eyes of Charming, Gloves of Thievery, Lantern of Revealing, Pipes of Haunting, an Uncommon armor, wand or weapon)."),
+        "**Charge Magic Item.** Bonus Action: touch an item you made with Replicate Magic Item that uses charges and spend a spell slot; it regains charges equal to the slot's level.\n**Drain Magic Item.** Bonus Action, once per Long Rest: touch an item you made; it vanishes and becomes a spell slot (level 1 for Common, level 2 for Uncommon or Rare) that lasts until your next Long Rest.\n**Transmute Magic Item.** Magic action, once per Long Rest: turn an item you made into another item from a plan you know."),
       "artificer-flash-of-genius": F("Flash of Genius", 7,
         "When you or a creature you can see within 30 ft fails an ability check or saving throw, you can take a Reaction to add your Intelligence modifier to the roll. Uses: Intelligence modifier (min 1) per Long Rest."),
-      "artificer-magic-item-adept": F("Magic Item Adept", 10, "You can attune to four magic items at once, and learn plans from the level 10+ list (Uncommon rings and wondrous items)."),
+      "artificer-magic-item-adept": F("Magic Item Adept", 10, "You can attune to four magic items at once."),
       "artificer-spell-storing-item": F("Spell-Storing Item", 11,
-        "After a Long Rest, store a level 1-3 Artificer spell with a casting time of an action in a weapon or focus you touch. Whoever holds it can take an action to cast it with your modifier, up to twice your Intelligence modifier times (min 2)."),
-      "artificer-magic-item-savant": F("Magic Item Savant", 14, "You can attune to five magic items, learn plans from the level 14+ list (Rare items), and have at most three Rare replicated items at a time."),
+        "After a Long Rest, store a level 1-3 Artificer spell with a casting time of an action (and no consumed material) in a Simple or Martial weapon or a focus you touch. Whoever holds it can take a Magic action to cast it with your spellcasting modifier, once per turn, up to twice your Intelligence modifier times (min 2), or until you store another spell."),
+      "artificer-magic-item-savant": F("Magic Item Savant", 14, "You can attune to five magic items at once."),
       "artificer-magic-item-master": F("Magic Item Master", 18, "You can attune to six magic items at once."),
       "artificer-epic-boon": F("Epic Boon", 19, "Take an Epic Boon feat or another feat you qualify for (Boon of Energy Resistance is suggested)."),
       "artificer-soul-of-artifice": F("Soul of Artifice", 20,
-        "**Cheat Death.** When you drop to 0 HP and aren't killed outright, you can destroy one Uncommon or Rare item you made with Replicate Magic Item and go to 20 HP instead.\n**Magical Guidance.** While attuned to at least one magic item, once per turn you can add 1d6 to an ability check after rolling.")
+        "**Cheat Death.** When you drop to 0 HP and aren't killed outright, you can destroy any number of Uncommon or Rare items you made with Replicate Magic Item; you go to 20 HP for each one instead.\n**Magical Guidance.** While attuned to at least one magic item, a use of Flash of Genius that still fails the roll isn't spent.")
     },
     // Magic item plans for Replicate Magic Item, by the Artificer level that unlocks each table.
     // [id, name, attunement, generic] - a generic plan names one specific item and can be learned more than once.
+    // Magic item plans for Replicate Magic Item: UA 2025 tables, with the book's 6+ changes (Dazzling Weapon in place of
+    // Radiant Weapon, Helm of Awareness added) as reported by guides to Forge of the Artificer, by the Artificer level that unlocks each table.
+    // [id, name, attunement, generic] - a generic plan names one specific item and can be learned more than once.
     plans: {
-      2: [["alchemy-jug", "Alchemy Jug", "No"], ["bag-of-holding", "Bag of Holding", "No"], ["cap-of-water-breathing", "Cap of Water Breathing", "No"],
-        ["common", "Common magic item (not a Potion, Scroll or cursed)", "Varies", true], ["goggles-of-night", "Goggles of Night", "No"],
-        ["rope-of-climbing", "Rope of Climbing", "No"], ["sending-stones", "Sending Stones", "No"], ["shield-1", "Shield +1", "No"],
-        ["wand-of-magic-detection", "Wand of Magic Detection", "No"], ["wand-of-secrets", "Wand of Secrets", "No"],
-        ["wand-of-the-war-mage-1", "Wand of the War Mage +1", "Yes"], ["weapon-1", "Weapon +1", "No"]],
-      6: [["armor-1", "Armor +1", "No"], ["boots-of-elvenkind", "Boots of Elvenkind", "No"], ["cloak-of-elvenkind", "Cloak of Elvenkind", "Yes"],
-        ["cloak-of-the-manta-ray", "Cloak of the Manta Ray", "No"], ["eyes-of-charming", "Eyes of Charming", "Yes"], ["gloves-of-thievery", "Gloves of Thievery", "No"],
-        ["lantern-of-revealing", "Lantern of Revealing", "No"], ["pipes-of-haunting", "Pipes of Haunting", "No"],
-        ["uncommon-awwp", "Uncommon armor, wand or weapon (not cursed)", "Varies", true]],
-      10: [["uncommon-rw", "Uncommon ring or wondrous item (not cursed)", "Varies", true]],
-      14: [["rare", "Rare armor, ring, wand, weapon or wondrous item (not cursed)", "Varies", true]]
+      2: [["alchemy-jug", "Alchemy Jug", "No"], ["bag-of-holding", "Bag of Holding", "No"], ["cap-of-water-breathing", "Cap of Water Breathing", "No"], ["common", "Common magic item (not a Potion, Scroll or cursed)", "Varies", true], ["goggles-of-night", "Goggles of Night", "No"], ["manifold-tool", "Manifold Tool", "Yes"], ["repeating-shot", "Repeating Shot", "Yes"], ["returning-weapon", "Returning Weapon", "No"], ["rope-of-climbing", "Rope of Climbing", "No"], ["sending-stones", "Sending Stones", "No"], ["shield-1", "Shield +1", "No"], ["wand-of-magic-detection", "Wand of Magic Detection", "No"], ["wand-of-secrets", "Wand of Secrets", "No"], ["wand-of-the-war-mage-1", "Wand of the War Mage +1", "Yes"], ["weapon-1", "Weapon +1", "No"], ["wraps-of-unarmed-power-1", "Wraps of Unarmed Power +1", "No"]],
+      6: [["armor-1", "Armor +1", "No"], ["boots-of-elvenkind", "Boots of Elvenkind", "No"], ["boots-of-the-winding-path", "Boots of the Winding Path", "Yes"], ["cloak-of-elvenkind", "Cloak of Elvenkind", "Yes"], ["cloak-of-the-manta-ray", "Cloak of the Manta Ray", "No"], ["dazzling-weapon", "Dazzling Weapon", "Yes"], ["eyes-of-charming", "Eyes of Charming", "Yes"], ["eyes-of-minute-seeing", "Eyes of Minute Seeing", "No"], ["gloves-of-thievery", "Gloves of Thievery", "No"], ["helm-of-awareness", "Helm of Awareness", "No"], ["lantern-of-revealing", "Lantern of Revealing", "No"], ["mind-sharpener", "Mind Sharpener", "Yes"], ["necklace-of-adaptation", "Necklace of Adaptation", "Yes"], ["pipes-of-haunting", "Pipes of Haunting", "No"], ["repulsion-shield", "Repulsion Shield", "No"], ["ring-of-swimming", "Ring of Swimming", "No"], ["ring-of-water-walking", "Ring of Water Walking", "No"], ["sentinel-shield", "Sentinel Shield", "No"], ["spell-refueling-ring", "Spell-Refueling Ring", "Yes"], ["wand-of-magic-missiles", "Wand of Magic Missiles", "No"], ["wand-of-web", "Wand of Web", "Yes"], ["weapon-of-warning", "Weapon of Warning", "Yes"]],
+      10: [["armor-of-resistance", "Armor of Resistance", "Yes"], ["dagger-of-venom", "Dagger of Venom", "No"], ["elven-chain", "Elven Chain", "No"], ["ring-of-feather-falling", "Ring of Feather Falling", "Yes"], ["ring-of-jumping", "Ring of Jumping", "Yes"], ["ring-of-mind-shielding", "Ring of Mind Shielding", "Yes"], ["shield-2", "Shield +2", "No"], ["uncommon-w", "Uncommon wondrous item (not cursed)", "Varies", true], ["wand-of-the-war-mage-2", "Wand of the War Mage +2", "Yes"], ["weapon-2", "Weapon +2", "No"], ["wraps-of-unarmed-power-2", "Wraps of Unarmed Power +2", "No"]],
+      14: [["armor-2", "Armor +2", "No"], ["arrow-catching-shield", "Arrow-Catching Shield", "Yes"], ["flame-tongue", "Flame Tongue", "Yes"], ["rare-w", "Rare wondrous item (not cursed)", "Varies", true], ["ring-of-free-action", "Ring of Free Action", "Yes"], ["ring-of-protection", "Ring of Protection", "Yes"], ["ring-of-the-ram", "Ring of the Ram", "Yes"]]
     },
-    // The UA's own magic items (Tasha's infusions turned into items). Each one is made through an open plan.
-    // [name, attunement, open plan it belongs to, short summary in our words, source (default UA)]
+    // old plan ids (UA 2024) -> new ones, for characters saved before
+    planMoves: { "common-magic-item-not-a-potion-scroll-or-cursed": "common", "uncommon-rw": "uncommon-w", "rare": "rare-w", "shield-1": "shield-1", "uncommon-awwp": "" },
+    // summaries in our own words for the items that were Tasha's infusions, and suggestions for open plans
+    // [name, attunement, open plan it belongs to ("" = its own row), short summary, source]
     uaItems: [
-      ["Repeating Shot", "Yes", "uncommon-awwp", "Weapon with the Ammunition property: +1 to ranged attack and damage rolls, ignores Loading, and makes its own ammunition, which vanishes after the shot."],
-      ["Repulsion Shield", "No", "uncommon-awwp", "Shield: +1 AC on top of the shield. 4 charges (1d4 back at dawn): Reaction when hit by a melee attack, push the attacker up to 15 ft."],
-      ["Returning Weapon", "No", "uncommon-awwp", "Weapon with the Thrown property: +1 to attack and damage rolls, and it flies back to your hand after a ranged attack."],
-      ["Boots of the Winding Path", "Yes", "uncommon-rw", "Bonus Action: teleport up to 15 ft to a space you can see that you were in earlier this turn."],
-      ["Helm of Awareness", "Yes", "uncommon-rw", "Advantage on Initiative rolls."],
-      ["Mind Sharpener", "Yes", "uncommon-rw", "Ring. 4 charges (1d4 back at dawn): when you fail a Constitution save to keep Concentration, use a Reaction and a charge to succeed instead."],
-      ["Spell-Refueling Ring", "Yes (spellcaster)", "uncommon-rw", "Bonus Action: regain one spent spell slot of level 3 or lower. Once per dawn."],
+      ["Repeating Shot", "Yes", "", "Weapon with the Ammunition property: +1 to ranged attack and damage rolls, ignores Loading, and makes its own ammunition, which vanishes after the shot."],
+      ["Repulsion Shield", "No", "", "Shield: +1 AC on top of the shield. 4 charges (1d4 back at dawn): Reaction when hit by a melee attack, push the attacker up to 15 ft."],
+      ["Returning Weapon", "No", "", "Weapon with the Thrown property: +1 to attack and damage rolls, and it flies back to your hand after a ranged attack."],
+      ["Boots of the Winding Path", "Yes", "", "Bonus Action: teleport up to 15 ft to a space you can see that you were in earlier this turn."],
+      ["Helm of Awareness", "No", "", "Advantage on Initiative rolls."],
+      ["Mind Sharpener", "Yes", "", "Ring. 4 charges (1d4 back at dawn): when you fail a Constitution save to keep Concentration, use a Reaction and a charge to succeed instead."],
+      ["Spell-Refueling Ring", "Yes", "", "Bonus Action: regain one spent spell slot of level 3 or lower. Once per dawn."],
+      ["Radiant Weapon", "Yes", "", "+1 to attack and damage rolls. Bonus Action: bright light 30 ft (dim 30 more), or put it out. 4 charges (1d4 back at dawn): Reaction when hit by an attack, the attacker makes a DC 15 Con save or is Blinded until the end of its next turn."],
       ["Spellwrought Tattoo (cantrip or level 1 spell)", "No", "common", "A tattoo that holds one spell. You cast it once without components, then the tattoo fades.", "DMG"],
-      ["Spellwrought Tattoo (level 2 spell)", "No", "uncommon-rw", "A tattoo that holds one spell. You cast it once without components, then the tattoo fades.", "DMG"],
-      ["Spellwrought Tattoo (level 3-5 spell)", "No", "rare", "A tattoo that holds one spell. You cast it once without components, then the tattoo fades.", "DMG"],
-      ["Radiant Weapon", "Yes (spellcaster)", "rare", "+1 to attack and damage rolls. Bonus Action: bright light 30 ft (dim 30 more), or put it out. 4 charges (1d4 back at dawn): Reaction when hit by an attack, the attacker makes a DC 15 Con save or is Blinded until the end of its next turn."]
+      ["Spellwrought Tattoo (level 2 spell)", "No", "uncommon-w", "A tattoo that holds one spell. You cast it once without components, then the tattoo fades.", "DMG"],
+      ["Spellwrought Tattoo (level 3-5 spell)", "No", "rare-w", "A tattoo that holds one spell. You cast it once without components, then the tattoo fades.", "DMG"]
     ],
     recommendedPlans: ["bag-of-holding", "cap-of-water-breathing", "sending-stones", "wand-of-the-war-mage-1"],
     uses: {
-      "artificer-magical-tinkering": ["mod:int", "long", "Magical Tinkering"],
+      "artificer-tinkers-magic": ["mod:int", "long", "Tinker's Magic"],
       "artificer-flash-of-genius": ["mod:int", "long", "Flash of Genius"],
       "artificer-magic-item-tinker": [1, "long", "Drain Magic Item"]
     },
@@ -129,6 +128,16 @@ window.ARTIFICER = (function () {
         { n: "Extra Attack", lv: 5, t: "You attack twice when you take the Attack action." },
         { n: "Arcane Jolt", lv: 9, t: "When you hit with a magic weapon or your Steel Defender hits, once per turn: +2d6 Force, or heal a creature within 30 ft of the target 2d6. Int modifier uses (min 1) per Long Rest." },
         { n: "Improved Defender", lv: 15, t: "Arcane Jolt becomes 4d6. The defender gets +2 AC, and its Deflect Attack deals 1d4 + Int Force to the attacker." }
+      ] },
+      // Unearthed Arcana 2025 "Eberron Updates" (printed in Forge of the Artificer)
+      cartographer: { n: "Cartographer", cls: "artificer", sum: "Magic maps that link and move your allies", t: "", f: [
+        { n: "Tool Proficiencies", lv: 3, t: "Proficiency with Calligrapher's Supplies and Cartographer's Tools (another Artisan's Tools for any you already have). Scribing a Spell Scroll takes half the time." },
+        { n: "Cartographer Spells", lv: 3, t: "Always prepared: 3 Faerie Fire, Guiding Bolt, Healing Word; 5 Locate Object, Mind Spike; 9 Clairvoyance, Haste; 13 Freedom of Movement, Locate Creature; 17 Scrying, Teleportation Circle.", spells: { 3: ["faerie-fire", "guiding-bolt", "healing-word"], 5: ["locate-object", "mind-spike"], 9: ["clairvoyance", "haste"], 13: ["freedom-of-movement", "locate-creature"], 17: ["scrying", "teleportation-circle"] } },
+        { n: "Adventurer's Atlas", lv: 3, t: "After a Long Rest, holding Cartographer's Tools, you touch at least two creatures (you can be one) and give each a magic map only they can read: up to 1 + your Intelligence modifier creatures (min 2). The maps last until you die or use this again.\n**Awareness.** A map holder adds 1d4 to Initiative rolls.\n**Positioning.** Map holders know where every other map holder on the same plane is, and can target each other with spells and effects that need sight, if in range." },
+        { n: "Scouting Gadgets", lv: 3, t: "**Boost.** On your turn, spend half your movement to teleport to an empty space you can see within 10 ft (not if your Speed is 0).\n**Radar.** Cast Faerie Fire without a spell slot, Intelligence modifier times (min 1) per Long Rest." },
+        { n: "Portal Jump", lv: 5, t: "Bonus Action: teleport up to 60 ft to an empty space you can see. Intelligence modifier uses (min 1) per Long Rest. If you land within 5 ft of a creature with one of your maps, it costs no use but that map is destroyed." },
+        { n: "Ingenious Movement", lv: 9, t: "When you use Flash of Genius, you or a willing creature you can see within 30 ft can also teleport up to 30 ft as part of that Reaction." },
+        { n: "Superior Atlas", lv: 15, t: "**Safe Haven.** A map holder dropped to 0 HP but not killed can destroy its map to teleport next to you or another map holder, and is Stable.\n**Unerring Path.** If you hold a map, cast Find the Path once per Long Rest without a slot, preparation or components.\n**Unshakeable Mind.** While one of your maps exists, taking damage can't break your Concentration on Artificer spells." }
       ] }
     },
     // the Artificer spell list (UA 2024), as SRD spell ids

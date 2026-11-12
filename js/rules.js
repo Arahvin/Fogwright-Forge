@@ -120,10 +120,24 @@
     Object.keys(A.plans).forEach(t => A.plans[t].forEach(([id, n, att, gen]) => { all[id] = { id, n, att, gen: !!gen, tier: +t }; }));
     const chosen = (ch.ch.plans || []).map(p => Object.assign({}, all[p.id] || { id: p.id, n: p.id, att: "", tier: 99 }, { item: p.item || "", spell: p.spell || "", tattoo: !!p.tattoo }));
     return { known: cs.plans_known + armor, items: cs.magic_items + armor, attune: lv >= 18 ? 6 : lv >= 14 ? 5 : lv >= 10 ? 4 : 3, armor: !!armor,
-      tiers, all, chosen, rare: lv >= 14 ? 3 : 0 };
+      tiers, all, chosen, rare: 0 };
   }
   // a plan that holds a spell (Spellwrought Tattoo): the spell levels its open plan allows
-  const tattooLevels = p => !(p.tattoo || /tattoo/i.test(p.item || "")) ? null : p.id === "common" ? [0, 1] : p.id === "uncommon-rw" ? [2] : p.id === "rare" ? [3, 4, 5] : null;
+  const tattooLevels = p => !(p.tattoo || /tattoo/i.test(p.item || "")) ? null : p.id === "common" ? [0, 1] : p.id === "uncommon-w" ? [2] : p.id === "rare-w" ? [3, 4, 5] : null;
+  // plans saved with the UA 2024 tables move to the Forge of the Artificer ones
+  function migratePlans(ch) {
+    if (!A || !ch.ch || !Array.isArray(ch.ch.plans)) return;
+    const rows = {};
+    Object.keys(A.plans).forEach(t => A.plans[t].forEach(r => { rows[r[0]] = r; }));
+    const byName = n => Object.values(rows).find(r => !r[3] && r[1].toLowerCase() === String(n || "").toLowerCase());
+    ch.ch.plans = ch.ch.plans.map(p => {
+      if (rows[p.id]) return p;
+      const named = byName(p.item);
+      if (named) return { id: named[0], item: "" };
+      const to = (A.planMoves || {})[p.id];
+      return to ? Object.assign({}, p, { id: to }) : p;
+    });
+  }
   const planName = p => p.gen ? (p.item ? p.item + " (" + p.n.replace(/\s*\(.*\)/, "") + ")" : p.n + " - item not named yet") : p.n;
 
   // the +1 a general feat or an epic boon gives: allowed abilities, and the cap
@@ -290,6 +304,9 @@
       (d.cantrips || []).forEach(id => push(id, "Magic Initiate", "Magic Initiate (" + cap(d.cls || f.fixedCls) + ")", true, d.abil));
       if (d.spell) push(d.spell, "Magic Initiate", "Magic Initiate: cast once per Long Rest without a slot; always prepared.", true, d.abil);
     });
+    if (c && clsId(ch) === "artificer") push("mending", "Tinker's Magic", "Tinker's Magic: always known, doesn't count against your cantrips.", true, c.cast);
+    const sub = SRD.subclasses[(ch.classes[0] || {}).sub];
+    if (sub && c) sub.f.forEach(f => Object.keys(f.spells || {}).forEach(k => { if (clvOf(ch) >= +k) f.spells[k].forEach(id => push(id, sub.n, sub.n + ": always prepared, doesn't count against your prepared spells.", true, c.cast)); }));
     const pl = plans(ch);
     if (pl) pl.chosen.forEach(p => { if (p.spell) push(p.spell, "Replicate Magic Item", (p.item || "Spellwrought Tattoo") + ": cast it once with no slot (pick \"No slot\"), then it is used up; you can make it again after a Long Rest.", true, "item"); });
     (ch.spells.extra || []).forEach(e => push(e.id, "Other", e.note || "", true, ""));
@@ -511,8 +528,8 @@
           if (pl) text = "**Plans known (" + pl.chosen.length + "/" + pl.known + "):** " + (pl.chosen.map(p => planName(p) + (p.att === "Yes" ? " (attunement)" : "")).join(", ") || "none yet") +
             ".\n**Items after a Long Rest:** up to " + pl.items + ", each from a different plan" + (pl.armor ? " (one must be armor)" : "") + (pl.rare ? "; at most " + pl.rare + " Rare at a time" : "") +
             ". **Attunement:** up to " + pl.attune + " items.\n\n" +
-            pl.chosen.map(p => (A.uaItems || []).find(u => u[0] === p.item)).filter(Boolean).map(u => "**" + u[0] + ".** " + u[3]).join("\n") +
-            (pl.chosen.some(p => (A.uaItems || []).some(u => u[0] === p.item)) ? "\n\n" : "") + text;
+            pl.chosen.map(p => (A.uaItems || []).find(u => (p.item && u[0] === p.item) || (!u[2] && u[0] === p.n))).filter(u => u && u[4] !== "DMG").map(u => "**" + u[0] + ".** " + u[3]).join("\n") +
+            "\n\n" + text;
         }
         if (fid.endsWith("-fighting-style") && ch.ch.fightingStyle) text = "**Your choice: " + ((feat(ch.ch.fightingStyle) || {}).n || "") + ".**\n\n" + text;
         if (/-(expertise|scholar|deft-explorer)$/.test(fid) && ch.exp.length) text = "**Your skills:** " + ch.exp.map(k => SKILL_NAMES[k]).join(", ") + ".\n\n" + text;
@@ -660,7 +677,7 @@
 
   window.Rules = {
     ABILS, ABIL_NAMES, SKILLS, SKILL_NAMES, SPECIES, STANDARD, POINT_COST, mod, sign, pbOf, cap,
-    blank, fullName, clvOf, asiLevels, subLevel, counts, plans, planName, tattooLevels, levelFeats, featPlus, asiBonus, hasFightingStyle, BIO_SLOTS, bionics, rollBionics, cls, clsId, level, species, line, background, feat, feats, spell, item, itemName, levelRow,
+    blank, fullName, clvOf, asiLevels, subLevel, counts, plans, planName, tattooLevels, migratePlans, levelFeats, featPlus, asiBonus, hasFightingStyle, BIO_SLOTS, bionics, rollBionics, cls, clsId, level, species, line, background, feat, feats, spell, item, itemName, levelRow,
     baseScores, pointsSpent, bgBonus, scores, training, weaponProficient, skillProfs, spellList, spellLimits,
     classSpells, startingGear, expandEquip, compute, toVTT
   };
