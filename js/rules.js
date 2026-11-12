@@ -47,7 +47,8 @@
       ch: { fightingStyle: "", divineOrder: "", primalOrder: "", mastery: [], invocations: [], instruments: [], monkTool: "", langs: [] },
       spells: { cantrips: [], prepared: [], extra: [] },
       equip: { cls: "", bg: "", picks: {} }, items: [], gp: 0,
-      det: { appearance: "", personality: "", backstory: "", notes: "" }
+      det: { appearance: "", personality: "", backstory: "", notes: "" },
+      asi: {}, lvNotes: {}
     };
   }
 
@@ -64,6 +65,61 @@
   const item = id => SRD.equipment[id] || X.packs[id] || null;
   const levelRow = (c, lv) => (c && c.lv[lv]) || { f: [], cs: {}, can: 0, prep: 0, slots: [0, 0, 0, 0, 0, 0, 0, 0, 0] };
 
+  // ---------------------------------------------------------------- levels
+
+  const clvOf = ch => Math.max(1, Math.min(20, (ch.classes[0] || {}).lv || 1));
+  // the levels of this class that give an Ability Score Improvement or an Epic Boon: [{lv, boon}]
+  function asiLevels(c) {
+    const out = [];
+    if (!c) return out;
+    for (let lv = 2; lv <= 20; lv++) levelRow(c, lv).f.forEach(fid => {
+      if (fid.endsWith("-ability-score-improvement")) out.push({ lv, boon: false });
+      else if (fid.endsWith("-epic-boon")) out.push({ lv, boon: true });
+    });
+    return out;
+  }
+  // the class level where the subclass is chosen
+  function subLevel(c) {
+    if (!c) return 3;
+    for (let lv = 1; lv <= 20; lv++) if (levelRow(c, lv).f.some(f => f.endsWith("-subclass"))) return lv;
+    return 3;
+  }
+  const hasFightingStyle = (id, lv) => id === "fighter" || ((id === "paladin" || id === "ranger") && lv >= 2);
+  // how many of each scaling choice the character has at their level
+  function counts(ch) {
+    const c = cls(ch), id = clsId(ch), lv = clvOf(ch);
+    let wm = 0, inv = 0;
+    for (let i = 1; i <= lv; i++) { const r = levelRow(c, i).cs || {}; wm = Math.max(wm, r.weapon_mastery || 0); inv = Math.max(inv, r.eldritch_invocations || 0); }
+    if (id === "warlock" && !inv) inv = 1;
+    const exp = id === "rogue" ? (lv >= 6 ? 4 : 2) : id === "bard" ? (lv >= 9 ? 4 : lv >= 2 ? 2 : 0) :
+      id === "ranger" ? (lv >= 9 ? 3 : lv >= 2 ? 1 : 0) : id === "wizard" ? (lv >= 2 ? 1 : 0) : 0;
+    const langs = 2 + (id === "ranger" && lv >= 2 ? 2 : 0);
+    return { mastery: wm, invocations: inv, expertise: exp, langs, fightingStyle: hasFightingStyle(id, lv) ? 1 : 0 };
+  }
+  // feats a level-up may give: general feats, origin feats, fighting styles (if the class has them), epic boons at 19
+  function levelFeats(ch, boon) {
+    const id = clsId(ch), out = [];
+    const all = Object.assign({}, SRD.feats, X.feats);
+    Object.keys(all).forEach(k => {
+      const f = all[k], t = f.type || "origin";
+      if (k === "ability-score-improvement") return;
+      if (t === "fighting-style" && !hasFightingStyle(id, 2)) return;
+      if (t === "epic-boon" && !boon) return;
+      out.push(k);
+    });
+    return out;
+  }
+  // the +1 a general feat or an epic boon gives: allowed abilities, and the cap
+  function featPlus(id) {
+    const f = feat(id);
+    if (!f) return null;
+    if (f.type === "epic-boon") return { from: ABILS, max: 30 };
+    const m = /Increase your ([A-Z][a-z]+(?:, [A-Z][a-z]+)*(?:,? or [A-Z][a-z]+)?) score by 1/.exec(f.t || "");
+    if (!m) return null;
+    const names = m[1].split(/,? or |, /).map(n => ABILS.find(k => ABIL_NAMES[k] === n)).filter(Boolean);
+    return names.length ? { from: names, max: 20 } : null;
+  }
+
   // feats the character has: [{id, from, data}]
   function feats(ch) {
     const out = [];
@@ -71,7 +127,12 @@
     if (bg) out.push({ id: bg.feat, from: "bg", data: ch.bg.featData || {}, fixedCls: bg.featCls || "" });
     const s = species(ch);
     if (s && s.originFeat && ch.sp.feat) out.push({ id: ch.sp.feat, from: "sp", data: ch.sp.featData || {} });
-    if (ch.ch.fightingStyle) out.push({ id: ch.ch.fightingStyle, from: "cls", data: {} });
+    if (ch.ch.fightingStyle && hasFightingStyle(clsId(ch), clvOf(ch))) out.push({ id: ch.ch.fightingStyle, from: "cls", data: {} });
+    const lv = clvOf(ch);
+    asiLevels(cls(ch)).forEach(a => {
+      const x = (ch.asi || {})[a.lv];
+      if (a.lv <= lv && x && x.mode === "feat" && x.feat) out.push({ id: x.feat, from: "lvl", lv: a.lv, data: x.featData || {} });
+    });
     return out;
   }
   const hasFeat = (ch, id) => feats(ch).some(f => f.id === id);
@@ -106,9 +167,25 @@
     return b;
   }
 
+  // increases from level-ups: {str: n, ...} up to 20, and boon: {...} that may go to 30
+  function asiBonus(ch) {
+    const b = {}, boon = {}, lv = clvOf(ch);
+    ABILS.forEach(k => { b[k] = 0; boon[k] = 0; });
+    asiLevels(cls(ch)).forEach(a => {
+      const x = (ch.asi || {})[a.lv];
+      if (a.lv > lv || !x) return;
+      if (x.mode === "asi") (x.a || []).forEach(k => { if (k && b[k] !== undefined) b[k]++; });
+      else if (x.mode === "feat" && x.plus) {
+        const fp = featPlus(x.feat);
+        if (fp && fp.from.includes(x.plus)) (fp.max > 20 ? boon : b)[x.plus]++;
+      }
+    });
+    return { b, boon };
+  }
+
   function scores(ch) {
-    const base = baseScores(ch), bon = bgBonus(ch), out = {};
-    ABILS.forEach(k => { out[k] = Math.min(20, base[k] + bon[k]); });
+    const base = baseScores(ch), bon = bgBonus(ch), up = asiBonus(ch), out = {};
+    ABILS.forEach(k => { out[k] = Math.min(30, Math.min(20, base[k] + bon[k] + up.b[k]) + up.boon[k]); });
     return out;
   }
 
@@ -201,8 +278,8 @@
   }
 
   function spellLimits(ch) {
-    const c = cls(ch), id = clsId(ch), row = levelRow(c, (ch.classes[0] || {}).lv || 1);
-    if (!c || !c.cast) return null;
+    const c = cls(ch), id = clsId(ch), row = levelRow(c, clvOf(ch));
+    if (!c || !c.cast || (!row.can && !row.prep && !row.slots.some(Boolean))) return null;
     let can = row.can;
     if (id === "cleric" && ch.ch.divineOrder === "thaumaturge") can += 1;
     if (id === "druid" && ch.ch.primalOrder === "magician") can += 1;
@@ -316,7 +393,7 @@
     ABILS.forEach(k => { m[k] = mod(sc[k]); });
     const t = training(ch);
     const sk = skillProfs(ch);
-    const clv = (ch.classes[0] || {}).lv || 1;
+    const clv = clvOf(ch);
     const warn = [];
 
     // hit points
@@ -393,22 +470,31 @@
       let text = ft.t;
       if (f.id === "magic-initiate") text = "**List: " + cap(f.data.cls || f.fixedCls || "?") + ", ability: " + (ABIL_NAMES[f.data.abil] || "?") + ".**\n\n" + text;
       const [n, rc] = usesOf(ft.uses);
-      features.push({ name: ft.n + (f.from === "cls" ? " (Fighting Style)" : ""), text, uses: n, recharge: rc, src: f.from === "bg" ? "Background" : f.from === "sp" ? "Species" : "Class" });
+      const x = f.from === "lvl" ? ch.asi[f.lv] || {} : {};
+      if (x.plus) text = "**+1 " + ABIL_NAMES[x.plus] + ".**\n\n" + text;
+      features.push({ name: ft.n + (f.from === "cls" ? " (Fighting Style)" : ""), text, uses: n, recharge: rc, src: f.from === "bg" ? "Background" : f.from === "sp" ? "Species" : f.from === "lvl" ? (c ? c.n + " " + f.lv : "Level " + f.lv) : "Class" });
     });
     if (c) {
       for (let lv = 1; lv <= clv; lv++) levelRow(c, lv).f.forEach(fid => {
         const f = SRD.features[fid];
         if (!f || fid.endsWith("-subclass")) return;
+        if (fid.endsWith("-ability-score-improvement") || fid.endsWith("-epic-boon")) {
+          const x = (ch.asi || {})[lv];
+          if (x && x.mode === "asi" && (x.a || []).filter(Boolean).length) features.push({ name: f.n, text: "**" + (x.a[0] === x.a[1] ? "+2 " + ABIL_NAMES[x.a[0]] : x.a.filter(Boolean).map(k => "+1 " + ABIL_NAMES[k]).join(", ")) + ".**", uses: 0, recharge: "", src: c.n + " " + lv });
+          return;  // a feat taken here is listed with the feats
+        }
         let text = f.t;
         if (fid === "cleric-divine-order" && ch.ch.divineOrder) text = "**Your choice: " + X.divineOrder[ch.ch.divineOrder].n + ".**\n\n" + text;
         if (fid === "druid-primal-order" && ch.ch.primalOrder) text = "**Your choice: " + X.primalOrder[ch.ch.primalOrder].n + ".**\n\n" + text;
         if (fid.endsWith("-weapon-mastery") && ch.ch.mastery.length) text = "**Your weapons:** " + ch.ch.mastery.map(w => itemName(w) + " (" + ((SRD.mastery[(item(w) || {}).mastery] || {}).n || "?") + ")").join(", ") + ".\n\n" + text;
-        if (fid === "rogue-expertise" && ch.exp.length) text = "**Your skills:** " + ch.exp.map(k => SKILL_NAMES[k]).join(", ") + ".\n\n" + text;
+        if (fid.endsWith("-fighting-style") && ch.ch.fightingStyle) text = "**Your choice: " + ((feat(ch.ch.fightingStyle) || {}).n || "") + ".**\n\n" + text;
+        if (/-(expertise|scholar|deft-explorer)$/.test(fid) && ch.exp.length) text = "**Your skills:** " + ch.exp.map(k => SKILL_NAMES[k]).join(", ") + ".\n\n" + text;
         const [n, rc] = usesOf(X.uses[fid]);
         features.push({ name: f.n, text, uses: n, recharge: rc, src: c.n + " " + lv });
       });
       const sub = SRD.subclasses[(ch.classes[0] || {}).sub];
-      if (sub) sub.f.filter(f => f.lv <= clv).forEach(f => features.push({ name: f.n, text: f.t, uses: 0, recharge: "", src: sub.n }));
+      if (sub) sub.f.filter(f => f.lv <= clv).forEach(f => features.push({ name: f.n, text: f.t, uses: 0, recharge: "", src: sub.n + " " + f.lv }));
+      Object.keys(ch.lvNotes || {}).filter(k => +k <= clv && ch.lvNotes[k]).sort((a, b) => a - b).forEach(k => features.push({ name: "Level " + k + " choices", text: ch.lvNotes[k], uses: 0, recharge: "", src: c.n + " " + k }));
       (ch.ch.invocations || []).forEach(k => { const v = SRD.invocations[k]; if (v) features.push({ name: "Invocation: " + v.n, text: v.t, uses: 0, recharge: "", src: "Warlock" }); });
       ch.ch.mastery.forEach(w => {
         const mp = SRD.mastery[(item(w) || {}).mastery];
@@ -474,6 +560,21 @@
     if (!s) warn.push("Choose a species.");
     if (s && s.lines && !ln) warn.push("Choose your " + s.lineLabel + ".");
     if (c && c.skills && (ch.skills || []).length < c.skills.n) warn.push("Choose " + (c.skills.n - ch.skills.length) + " more class skill(s).");
+    if (c && clv >= subLevel(c) && !(ch.classes[0] || {}).sub) warn.push("Choose a subclass.");
+    if (c) asiLevels(c).filter(a => a.lv <= clv).forEach(a => {
+      const x = (ch.asi || {})[a.lv] || {};
+      const ok = x.mode === "asi" ? (x.a || []).filter(Boolean).length === 2 : x.mode === "feat" ? !!x.feat && (!featPlus(x.feat) || !!x.plus) : false;
+      if (!ok) warn.push("Level " + a.lv + ": choose an Ability Score Improvement or a feat.");
+    });
+    if (c && ch.hp.method === "roll") for (let i = 2; i <= clv; i++) if (!ch.hp.rolls[i]) { warn.push("Level " + i + ": roll Hit Points (or the average is used)."); break; }
+    if (c) {
+      const n = counts(ch);
+      if (ch.ch.mastery.length < n.mastery) warn.push("Choose " + (n.mastery - ch.ch.mastery.length) + " more Weapon Mastery weapon(s).");
+      if (clsId(ch) === "warlock" && ch.ch.invocations.length < n.invocations) warn.push("Choose " + (n.invocations - ch.ch.invocations.length) + " more Eldritch Invocation(s).");
+      if (ch.exp.length < n.expertise) warn.push("Choose " + (n.expertise - ch.exp.length) + " more Expertise skill(s).");
+      if (n.fightingStyle && !ch.ch.fightingStyle) warn.push("Choose a Fighting Style.");
+      if ((ch.ch.langs || []).filter(Boolean).length < n.langs) warn.push("Choose " + (n.langs - ch.ch.langs.filter(Boolean).length) + " more language(s).");
+    }
 
     const sub = SRD.subclasses[(ch.classes[0] || {}).sub];
     return {
@@ -481,7 +582,7 @@
       skillBonus, hp, hd: L + "d" + hd, ac, acNote, speed, senses, passive, init, res: [...res], langs, training: t,
       features, attacks, spells, slots: lim ? lim.slots : [0, 0, 0, 0, 0, 0, 0, 0, 0], castAbil,
       dc: castAbil ? 8 + pb + m[castAbil] : 0, spellAtk: castAbil ? pb + m[castAbil] : 0,
-      clsText: c ? c.n + " " + clv + (sub ? " (" + sub.n + ")" : "") : "",
+      clsText: c ? c.n + " " + clv + (sub ? " (" + sub.n + ")" : (ch.classes[0] || {}).sub === "other" && ch.classes[0].subName ? " (" + ch.classes[0].subName + ")" : "") : "",
       label: X.labels[id] || "",
       speciesText: s ? s.n + (ln ? ", " + ln.n.replace(/\s*\(.*\)/, "") : "") : "",
       size: ch.sp.size || (s ? s.size[0] : ""), bgText: bg ? bg.n : "", warn
@@ -523,7 +624,7 @@
 
   window.Rules = {
     ABILS, ABIL_NAMES, SKILLS, SKILL_NAMES, SPECIES, STANDARD, POINT_COST, mod, sign, pbOf, cap,
-    blank, fullName, BIO_SLOTS, bionics, rollBionics, cls, clsId, level, species, line, background, feat, feats, spell, item, itemName, levelRow,
+    blank, fullName, clvOf, asiLevels, subLevel, counts, levelFeats, featPlus, asiBonus, hasFightingStyle, BIO_SLOTS, bionics, rollBionics, cls, clsId, level, species, line, background, feat, feats, spell, item, itemName, levelRow,
     baseScores, pointsSpent, bgBonus, scores, training, weaponProficient, skillProfs, spellList, spellLimits,
     classSpells, startingGear, expandEquip, compute, toVTT
   };

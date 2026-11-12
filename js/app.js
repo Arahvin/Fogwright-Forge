@@ -1,7 +1,7 @@
 // Fogwright Forge: the builder screens.
 (function () {
   "use strict";
-  const VERSION = "v14";
+  const VERSION = "v15";
   const R = window.Rules, SRD = window.SRD, X = window.EXTRA;
   const KEY = "forge-chars-v1", PREF = "forge-prefs-v1";
 
@@ -140,13 +140,17 @@
     if (!c) missing.push("class");
     else {
       if (c.skills && ch.skills.length < c.skills.n) missing.push("class");
-      if (id === "fighter" && !ch.ch.fightingStyle) missing.push("class");
+      const cn = R.counts(ch);
+      if (cn.fightingStyle && !ch.ch.fightingStyle) missing.push("class");
       if (id === "cleric" && !ch.ch.divineOrder) missing.push("class");
       if (id === "druid" && !ch.ch.primalOrder) missing.push("class");
-      const wm = (R.levelRow(c, 1).cs || {}).weapon_mastery || 0;
-      if (wm && ch.ch.mastery.length < wm) missing.push("class");
-      if (id === "rogue" && ch.exp.length < 2) missing.push("class");
-      if (id === "warlock" && ch.ch.invocations.length < 1) missing.push("class");
+      if (ch.ch.mastery.length < cn.mastery) missing.push("class");
+      if (ch.exp.length < cn.expertise) missing.push("class");
+      if (id === "warlock" && ch.ch.invocations.length < cn.invocations) missing.push("class");
+      // level-ups
+      const lv = R.clvOf(ch);
+      if (lv >= R.subLevel(c) && !ch.classes[0].sub) missing.push("level");
+      R.asiLevels(c).filter(x => x.lv <= lv).forEach(x => { if (!asiDone(ch, x.lv)) missing.push("level"); });
       if (id === "bard" && ch.ch.instruments.length < 3) missing.push("class");
       if ((id === "monk" || id === "artificer") && !ch.ch.monkTool) missing.push("class");
     }
@@ -179,9 +183,15 @@
     const lim = R.spellLimits(ch);
     if (lim && (ch.spells.cantrips.length < lim.cantrips || ch.spells.prepared.length < lim.prepared)) missing.push("spells");
     // details
-    if (!(ch.name || ch.nick) || ch.ch.langs.filter(Boolean).length < 2) missing.push("details");
-    ["class", "background", "species", "abilities", "equipment", "spells", "details"].forEach(k => { n[k] = !missing.includes(k); });
+    if (!(ch.name || ch.nick) || ch.ch.langs.filter(Boolean).length < (c ? R.counts(ch).langs : 2)) missing.push("details");
+    ["class", "level", "background", "species", "abilities", "equipment", "spells", "details"].forEach(k => { n[k] = !missing.includes(k); });
     return n;
+  }
+  function asiDone(ch, lv) {
+    const x = (ch.asi || {})[lv] || {};
+    if (x.mode === "asi") return (x.a || []).filter(Boolean).length === 2;
+    if (x.mode === "feat") return !!x.feat && featDone(x.feat, x.featData) && (!R.featPlus(x.feat) || !!x.plus);
+    return false;
   }
   function featDone(id, data, fixedCls) {
     data = data || {};
@@ -258,14 +268,15 @@
       const opts = c.skills.from.map(k => bgSk.includes(k) ? [k, SN[k] + " (" + T("Background") + ")", T("Background")] : [k, SN[k]]);
       h += '<div class="choice"><h4>' + T("Skills") + " " + status(ch.skills.length, c.skills.n) + '</h4><p class="small muted">' + T("Choose") + " " + c.skills.n + "</p>" + chips("skills", opts, c.skills.n) + "</div>";
     }
-    if (id === "fighter") {
+    const cn = R.counts(ch);
+    if (cn.fightingStyle) {
       h += '<div class="choice"><h4>' + T("Fighting Style") + " " + status(ch.ch.fightingStyle ? 1 : 0, 1) + "</h4>" +
         pick("ch.fightingStyle", Object.keys(SRD.feats).filter(k => SRD.feats[k].type === "fighting-style").map(k => [k, SRD.feats[k].n])) +
         (ch.ch.fightingStyle ? md(SRD.feats[ch.ch.fightingStyle].t) : "") + "</div>";
     }
     if (id === "cleric") h += '<div class="choice"><h4>' + T("Divine Order") + " " + status(ch.ch.divineOrder ? 1 : 0, 1) + "</h4>" + pick("ch.divineOrder", Object.keys(X.divineOrder).map(k => [k, X.divineOrder[k].n]), { reset: "spells.cantrips" }) + (ch.ch.divineOrder ? '<p class="small">' + esc(X.divineOrder[ch.ch.divineOrder].t) + "</p>" : "") + "</div>";
     if (id === "druid") h += '<div class="choice"><h4>' + T("Primal Order") + " " + status(ch.ch.primalOrder ? 1 : 0, 1) + "</h4>" + pick("ch.primalOrder", Object.keys(X.primalOrder).map(k => [k, X.primalOrder[k].n]), { reset: "spells.cantrips" }) + (ch.ch.primalOrder ? '<p class="small">' + esc(X.primalOrder[ch.ch.primalOrder].t) + "</p>" : "") + "</div>";
-    const wm = row.cs.weapon_mastery || 0;
+    const wm = cn.mastery;
     if (wm) {
       const t = R.training(ch), mode = X.masteryFrom[id];
       const ws = Object.keys(SRD.equipment).filter(k => {
@@ -278,19 +289,92 @@
       h += '<div class="choice"><h4>' + T("Weapon Mastery") + " " + status(ch.ch.mastery.length, wm) + '</h4><p class="small muted">' + T("Choose") + " " + wm + "</p>" +
         chips("ch.mastery", ws.map(k => [k, SRD.equipment[k].n + " · " + ((SRD.mastery[SRD.equipment[k].mastery] || {}).n || "")]), wm) + "</div>";
     }
-    if (id === "rogue") {
-      const sk = Object.keys(R.skillProfs(ch).prof);
-      h += '<div class="choice"><h4>' + T("Expertise") + " " + status(ch.exp.length, 2) + '</h4><p class="small muted">' + T("Choose") + " 2 (" + T("Skills") + ")</p>" +
-        (sk.length ? chips("exp", sk.map(k => [k, SN[k]]), 2) : '<p class="small muted">—</p>') + "</div>";
+    if (cn.expertise) {
+      let sk = Object.keys(R.skillProfs(ch).prof);
+      if (id === "wizard") sk = sk.filter(k => ["arcana", "history", "investigation", "medicine", "nature", "religion"].includes(k));
+      h += '<div class="choice"><h4>' + T("Expertise") + " " + status(ch.exp.length, cn.expertise) + '</h4><p class="small muted">' + T("Choose") + " " + cn.expertise + " (" + T("Skills") + ")</p>" +
+        (sk.length ? chips("exp", sk.map(k => [k, SN[k]]), cn.expertise) : '<p class="small muted">—</p>') + "</div>";
     }
     if (id === "warlock") {
-      const inv = Object.keys(SRD.invocations).filter(k => SRD.invocations[k].lv <= 1 && !/Invocation|Pact of the/.test(SRD.invocations[k].pre));
-      h += '<div class="choice"><h4>' + T("Eldritch Invocation") + " " + status(ch.ch.invocations.length, 1) + "</h4>" + chips("ch.invocations", inv.map(k => [k, SRD.invocations[k].n]), 1) +
+      const lv = R.clvOf(ch);
+      const inv = Object.keys(SRD.invocations).filter(k => SRD.invocations[k].lv <= lv && (lv > 1 || !/Invocation|Pact of the/.test(SRD.invocations[k].pre)));
+      h += '<div class="choice"><h4>' + T("Eldritch Invocation") + " " + status(ch.ch.invocations.length, cn.invocations) + '</h4><p class="small muted">' + T("Choose") + " " + cn.invocations + (lv > 1 ? ". Check each prerequisite in its text." : "") + "</p>" + chips("ch.invocations", inv.map(k => [k, SRD.invocations[k].n + (SRD.invocations[k].lv > 1 ? " (" + T("Level") + " " + SRD.invocations[k].lv + "+)" : "")]), cn.invocations) +
         ch.ch.invocations.map(k => md(SRD.invocations[k].t)).join("") + "</div>";
     }
     if (id === "bard") h += '<div class="choice"><h4>' + T("Musical instruments") + " " + status(ch.ch.instruments.length, 3) + "</h4>" + chips("ch.instruments", catItems("musical-instruments"), 3) + "</div>";
     if (id === "artificer") h += '<div class="choice"><h4>' + T("Tool") + " (Artisan's Tools) " + status(ch.ch.monkTool ? 1 : 0, 1) + "</h4>" + select("ch.monkTool", catItems("artisans-tools").filter(([k]) => k !== "tinkers-tools")) + "</div>";
     if (id === "monk") h += '<div class="choice"><h4>' + T("Tool or instrument") + " " + status(ch.ch.monkTool ? 1 : 0, 1) + "</h4>" + select("ch.monkTool", [...catItems("artisans-tools"), ...catItems("musical-instruments")]) + "</div>";
+    return h + "</div>";
+  }
+
+  function stepLevel() {
+    const ch = cur, c = R.cls(ch), id = R.clsId(ch);
+    if (!c) return '<div class="panel"><h2>' + T("Level") + '</h2><p class="muted">' + T("Choose") + " " + T("Class").toLowerCase() + ".</p></div>";
+    const lv = R.clvOf(ch), m = R.mod(R.scores(ch).con), avg = c.hd / 2 + 1, subLv = R.subLevel(c), asis = R.asiLevels(c);
+    let h = '<div class="panel"><div class="row wrap"><h2 style="margin:0">' + esc(c.n) + " · " + T("Level") + " " + lv + '</h2><div class="spacer"></div>' +
+      (lv > 1 ? '<button class="danger" data-act="levelDown">' + (armed === "levelDown" ? T("Click again to go back to level") + " " + (lv - 1) : T("Level down")) + "</button>" : "") +
+      (lv < 20 ? '<button class="primary" data-act="levelUp">' + T("Level up to") + " " + (lv + 1) + "</button>" : "") + "</div>" +
+      '<p class="small muted">' + esc(T("levelHelp")) + "</p>" +
+      '<div class="choice"><h4>' + T("Hit Points") + "</h4>" + pick("hp.method", [["avg", T("Average") + " (" + avg + ")"], ["roll", T("Roll") + " (d" + c.hd + ")"]]) +
+      '<p class="small muted">' + T("Each level adds") + " " + (ch.hp.method === "roll" ? "d" + c.hd : avg) + " " + R.sign(m) + " (CON).</p></div></div>";
+    if (lv === 1) return h + '<div class="panel muted">' + esc(T("level1Help")) + "</div>";
+    const subs = Object.keys(SRD.subclasses).filter(k => SRD.subclasses[k].cls === id);
+    for (let L = lv; L >= 2; L--) {
+      const row = R.levelRow(c, L), sub = SRD.subclasses[ch.classes[0].sub];
+      h += '<div class="panel"><h3 style="margin-top:0">' + T("Level") + " " + L + "</h3>";
+      // hit points
+      h += '<div class="row small"><b>' + T("Hit Points") + ":</b> " + (ch.hp.method === "roll"
+        ? '<input type="number" min="1" max="' + c.hd + '" style="width:64px" data-set="hp.rolls.' + L + '" data-num="1" value="' + attr(ch.hp.rolls[L] || "") + '"><button class="small" data-act="rollHp" data-v="' + L + '">' + T("Roll") + " d" + c.hd + "</button>" + (ch.hp.rolls[L] ? "" : ' <span class="need">' + T("average until rolled") + "</span>")
+        : avg) + " " + R.sign(m) + "</div>";
+      // features
+      const feats = row.f.filter(fid => !fid.endsWith("-subclass") && !fid.endsWith("-ability-score-improvement") && !fid.endsWith("-epic-boon")).map(fid => SRD.features[fid]).filter(Boolean);
+      if (sub) sub.f.filter(f => f.lv === L).forEach(f => feats.push(f));
+      if (feats.length) h += feats.map(f => "<details><summary>" + esc(f.n) + (sub && sub.f.includes(f) ? ' <span class="badge">' + esc(sub.n) + "</span>" : "") + "</summary>" + md(f.t) + "</details>").join("");
+      // subclass
+      if (L === subLv) {
+        h += '<div class="choice"><h4>' + T("Subclass") + " " + status(ch.classes[0].sub ? 1 : 0, 1) + "</h4>" + pick("classes.0.sub", subs.map(k => [k, SRD.subclasses[k].n]).concat([["other", T("Another subclass")]])) +
+          (ch.classes[0].sub === "other" ? '<div class="row" style="margin-top:8px">' + T("Name") + ' <input data-set="classes.0.subName" value="' + attr(ch.classes[0].subName || "") + '"></div>' : "") +
+          '<p class="small muted">' + esc(T("subHelp")) + "</p></div>";
+      } else if (row.f.some(f => f.endsWith("-subclass")) && !sub) h += '<p class="small need">' + T("Choose your subclass at level") + " " + subLv + ".</p>";
+      // ASI or feat
+      const a = asis.find(x => x.lv === L);
+      if (a) h += asiBlock(L, a.boon);
+      // other new choices that live on the Class tab
+      const nxt = [];
+      if (row.f.some(f => /-(fighting-style)$/.test(f))) nxt.push(T("Fighting Style"));
+      if (row.f.some(f => /-(expertise|scholar|deft-explorer)$/.test(f))) nxt.push(T("Expertise"));
+      if (id === "warlock" && (row.cs.eldritch_invocations || 0) > (R.levelRow(c, L - 1).cs.eldritch_invocations || 0)) nxt.push(T("Eldritch Invocation"));
+      if ((row.cs.weapon_mastery || 0) > (R.levelRow(c, L - 1).cs.weapon_mastery || 0)) nxt.push(T("Weapon Mastery"));
+      if (nxt.length) h += '<p class="small">' + T("New choices on the Class tab") + ": <b>" + nxt.join(", ") + '</b> <button class="small" data-tab="class">' + T("Class") + "</button></p>";
+      if (row.can > R.levelRow(c, L - 1).can || row.prep > R.levelRow(c, L - 1).prep) h += '<p class="small">' + T("More spells") + ': <button class="small" data-tab="spells">' + T("Spells") + "</button></p>";
+      h += '<div class="choice"><h4>' + T("Other choices") + '</h4><textarea data-set="lvNotes.' + L + '" placeholder="' + attr(T("lvNotesHelp")) + '">' + esc((ch.lvNotes || {})[L] || "") + "</textarea></div>";
+      h += "</div>";
+    }
+    return h;
+  }
+
+  function asiBlock(L, boon) {
+    const ch = cur, x = (ch.asi || {})[L] || {}, base = "asi." + L;
+    let h = '<div class="choice"><h4>' + (boon ? T("Epic Boon") : T("Ability Score Improvement")) + " " + status(asiDone(ch, L) ? 1 : 0, 1) + "</h4>" +
+      pick(base + ".mode", [["asi", T("+2 to one, or +1 to two")], ["feat", boon ? T("Epic Boon or another feat") : T("A feat")]], { reset: base + ".a," + base + ".feat," + base + ".plus," + base + ".featData" });
+    if (x.mode === "asi") {
+      const a = x.a || [], sc = R.scores(ch);
+      const opt = i => '<select data-asi="' + L + '" data-i="' + i + '"><option value="">—</option>' + AB.map(k => '<option value="' + k + '"' + (a[i] === k ? " selected" : "") + ">" + AN[k] + "</option>").join("") + "</select>";
+      h += '<div class="row wrap" style="margin-top:8px">+1 ' + opt(0) + " +1 " + opt(1) + '<span class="small muted">' + T("Same one twice = +2. Max 20.") + "</span></div>";
+      const over = AB.filter(k => sc[k] >= 20 && a.includes(k));
+      if (over.length) h += '<p class="small need">' + over.map(k => AN[k]).join(", ") + " " + T("is already 20.") + "</p>";
+    } else if (x.mode === "feat") {
+      const taken = R.feats(ch).filter(f => !(f.from === "lvl" && f.lv === L)).map(f => f.id);
+      const list = R.levelFeats(ch, boon).filter(k => !taken.includes(k) || ["magic-initiate", "skilled"].includes(k));
+      const groups = { "epic-boon": T("Epic Boons"), general: T("General feats"), "fighting-style": T("Fighting Style"), origin: T("Origin feats") };
+      h += '<div style="margin-top:8px"><select data-set="' + base + '.feat"><option value="">' + T("Choose a feat") + "…</option>" +
+        Object.keys(groups).map(g => { const ks = list.filter(k => (R.feat(k).type || "origin") === g); return ks.length ? '<optgroup label="' + attr(groups[g]) + '">' + ks.map(k => '<option value="' + k + '"' + (x.feat === k ? " selected" : "") + ">" + esc(R.feat(k).n) + (R.feat(k).src === "PHB" ? " (PHB)" : "") + "</option>").join("") + "</optgroup>" : ""; }).join("") + "</select></div>";
+      if (x.feat) {
+        const fp = R.featPlus(x.feat);
+        if (fp) h += '<p class="small muted" style="margin-top:8px">+1 (' + T("max") + " " + fp.max + ")</p>" + pick(base + ".plus", fp.from.map(k => [k, AN[k]]));
+        h += featChoices(x.feat, base + ".featData");
+      }
+    }
     return h + "</div>";
   }
 
@@ -375,7 +459,7 @@
 
   function stepAbilities() {
     const ch = cur, a = ch.ab, c = R.cls(ch);
-    const base = R.baseScores(ch), bon = R.bgBonus(ch), fin = R.scores(ch);
+    const base = R.baseScores(ch), bon = R.bgBonus(ch), fin = R.scores(ch), up = R.asiBonus(ch);
     let h = '<div class="panel"><h2>' + T("Abilities") + "</h2>" + pick("ab.method", [["array", T("Standard array")], ["point", T("Point buy")], ["roll", T("Roll")], ["manual", T("Manual")]]);
     if (c) h += '<p class="small muted">' + T("Recommended") + ": " + esc(SRD.classes[R.clsId(ch)].n) + " → " + (c.cast ? AN[c.cast] : ({ barbarian: "Strength", fighter: "Strength or Dexterity", monk: "Dexterity and Wisdom", rogue: "Dexterity" })[R.clsId(ch)] || "") + ".</p>";
     if (a.method === "point") h += '<p><b>' + T("Points left") + ": " + (27 - R.pointsSpent(ch)) + "</b> / 27</p>";
@@ -384,7 +468,7 @@
         [0, 1, 2, 3, 4, 5].map(i => '<input type="number" min="3" max="18" style="width:64px" data-roll="' + i + '" value="' + attr(a.rolled[i] ?? "") + '">').join("") + "</div>";
     }
     const pool = a.method === "array" ? R.STANDARD : a.method === "roll" ? a.rolled : null;
-    h += '<div class="tablewrap"><table class="grid"><tr><th></th><th>' + T("Base") + "</th><th>" + T("Background") + "</th><th>" + T("Score") + "</th><th>" + T("Modifier") + "</th></tr>";
+    h += '<div class="tablewrap"><table class="grid"><tr><th></th><th>' + T("Base") + "</th><th>" + T("Background") + "</th><th>" + T("Level-ups") + "</th><th>" + T("Score") + "</th><th>" + T("Modifier") + "</th></tr>";
     AB.forEach(k => {
       let ctl;
       if (pool) {
@@ -393,7 +477,7 @@
       } else if (a.method === "point") {
         ctl = '<div class="row"><button class="small" data-act="pb-" data-v="' + k + '"' + (a.base[k] <= 8 ? " disabled" : "") + '>−</button><b style="min-width:22px;text-align:center">' + a.base[k] + '</b><button class="small" data-act="pb+" data-v="' + k + '"' + (a.base[k] >= 15 ? " disabled" : "") + ">+</button></div>";
       } else ctl = '<input type="number" min="1" max="20" style="width:70px" data-set="ab.base.' + k + '" data-num="1" value="' + a.base[k] + '">';
-      h += "<tr><td><b>" + AN[k] + "</b></td><td>" + ctl + "</td><td>" + (bon[k] ? "+" + bon[k] : "") + "</td><td><b>" + fin[k] + "</b></td><td>" + R.sign(R.mod(fin[k])) + "</td></tr>";
+      h += "<tr><td><b>" + AN[k] + "</b></td><td>" + ctl + "</td><td>" + (bon[k] ? "+" + bon[k] : "") + "</td><td>" + (up.b[k] + up.boon[k] ? "+" + (up.b[k] + up.boon[k]) : "") + "</td><td><b>" + fin[k] + "</b></td><td>" + R.sign(R.mod(fin[k])) + "</td></tr>";
     });
     h += "</table></div>";
     if (!R.background(ch)) h += '<p class="small muted">Choose a background to add its +2/+1.</p>';
@@ -458,7 +542,8 @@
       "<span>" + T("Character name") + '</span><div class="row"><input data-set="name" value="' + attr(ch.name) + '" style="flex:2;min-width:140px"><label class="row" style="gap:6px;flex:1;min-width:140px">' + T("Nickname") + ' <input data-set="nick" value="' + attr(ch.nick || "") + '" style="flex:1;min-width:0"></label></div>' +
       "<span>" + T("Player (VTT name)") + '</span><div><input data-set="player" value="' + attr(ch.player) + '"><div class="small muted">The name the player logs in with in Fogwright VTT, so the sheet is theirs.</div></div>' +
       "</div>";
-    h += '<div class="choice"><h4>' + T("Languages") + " " + status(ch.ch.langs.filter(Boolean).length, 2) + '</h4><p class="small muted">' + esc(L.common) + " (Common) + 2. " + T("Choose") + " 2.</p>" + chips("ch.langs", langs.concat(rareOn), 2) +
+    const nl = R.cls(ch) ? R.counts(ch).langs : 2;
+    h += '<div class="choice"><h4>' + T("Languages") + " " + status(ch.ch.langs.filter(Boolean).length, nl) + '</h4><p class="small muted">' + esc(L.common) + " (Common) + " + nl + ". " + T("Choose") + " " + nl + (nl > 2 ? " (2 + Deft Explorer)" : "") + ".</p>" + chips("ch.langs", langs.concat(rareOn), nl) +
       '<p class="small muted">' + T("Rare languages") + ": " + esc(L.rare.map(r => r[0] + " (" + r[1] + ")").join(", ")) + ". " + T("rareHelp") + "</p></div>";
     ["appearance", "personality", "backstory", "notes"].forEach(k => {
       h += '<div class="choice"><h4>' + T(R.cap(k)) + '</h4><textarea data-set="det.' + k + '">' + esc(ch.det[k] || "") + "</textarea></div>";
@@ -505,7 +590,7 @@
 
   // ---------------------------------------------------------------- pages
 
-  const STEPS = ["class", "background", "species", "abilities", "equipment", "spells", "details", "sheet"];
+  const STEPS = ["class", "level", "background", "species", "abilities", "equipment", "spells", "details", "sheet"];
 
   function home() {
     let h = '<div class="panel"><div class="row"><h2 style="margin:0">' + T("Characters") + '</h2><div class="spacer"></div><button class="primary" data-act="new">' + T("New character") + '</button>' +
@@ -560,7 +645,7 @@
   function builder() {
     const need = stepNeeds(cur);
     const nav = '<nav class="steps">' + STEPS.map(k => '<button class="' + (k === tab ? "on" : "") + '" data-tab="' + k + '">' + (k === "sheet" ? "" : '<span class="dot' + (need[k] ? " ok" : "") + '"></span>') + T(R.cap(k)) + "</button>").join("") + "</nav>";
-    const body = { class: stepClass, background: stepBackground, species: stepSpecies, abilities: stepAbilities, equipment: stepEquipment, spells: stepSpells, details: stepDetails, sheet: stepSheet }[tab]();
+    const body = { class: stepClass, level: stepLevel, background: stepBackground, species: stepSpecies, abilities: stepAbilities, equipment: stepEquipment, spells: stepSpells, details: stepDetails, sheet: stepSheet }[tab]();
     const i = STEPS.indexOf(tab);
     const pager = '<div class="row noprint">' + (i > 0 ? '<button data-tab="' + STEPS[i - 1] + '">← ' + T("Back") + "</button>" : "") + '<div class="spacer"></div>' + (i < STEPS.length - 1 ? '<button class="primary" data-tab="' + STEPS[i + 1] + '">' + T("Next") + " →</button>" : "") + "</div>";
     if (tab === "sheet") return nav + body + pager;
@@ -585,7 +670,7 @@
 
   // ---------------------------------------------------------------- actions
 
-  function resetPaths(list) { (list || "").split(",").filter(Boolean).forEach(p => setPath(cur, p, Array.isArray(getPath(cur, p)) ? [] : (typeof getPath(cur, p) === "object" && getPath(cur, p) ? {} : ""))); }
+  function resetPaths(list) { (list || "").split(",").filter(Boolean).forEach(p => { const v = getPath(cur, p); if (v !== undefined) setPath(cur, p, Array.isArray(v) ? [] : (typeof v === "object" && v ? {} : "")); }); }
 
   const acts = {
     home() { if (saveTimer) flush(); cur = null; armed = ""; page = ""; loginErr = ""; render(); },
@@ -615,7 +700,7 @@
     importPick() { $("#importFile").click(); },
     setClass(v) {
       if (R.clsId(cur) === v) return;
-      cur.classes = [{ id: v, lv: 1, sub: "" }];
+      cur.classes = [{ id: v, lv: R.clvOf(cur), sub: "" }]; cur.asi = {}; cur.lvNotes = {};
       cur.skills = []; cur.exp = []; cur.spells.cantrips = []; cur.spells.prepared = []; cur.equip.cls = "";
       Object.assign(cur.ch, { fightingStyle: "", divineOrder: "", primalOrder: "", mastery: [], invocations: [], instruments: [], monkTool: "" });
       save(); render();
@@ -628,6 +713,28 @@
       save(); render();
     },
     setSpecies(v) { if (cur.sp.id === v) return; cur.sp = { id: v, size: R.SPECIES[v].size.length === 1 ? R.SPECIES[v].size[0] : "", line: "", abil: "", skill: "", keen: "", feat: "", featData: {} }; save(); render(); },
+    levelUp() {
+      const c = R.cls(cur); if (!c) return;
+      const lv = R.clvOf(cur); if (lv >= 20) return;
+      cur.classes[0].lv = lv + 1; tab = "level"; save(); render(); window.scrollTo(0, 0); toast(T("Level") + " " + (lv + 1));
+    },
+    levelDown() {
+      if (armed !== "levelDown") { armed = "levelDown"; render(); return; }
+      armed = "";
+      const lv = R.clvOf(cur); if (lv <= 1) return;
+      cur.classes[0].lv = lv - 1;
+      delete cur.asi[lv]; delete cur.hp.rolls[lv]; delete cur.lvNotes[lv];
+      if (lv - 1 < R.subLevel(R.cls(cur))) cur.classes[0].sub = "";
+      const n = R.counts(cur);
+      cur.exp = cur.exp.slice(0, n.expertise); cur.ch.mastery = cur.ch.mastery.slice(0, n.mastery);
+      cur.ch.invocations = cur.ch.invocations.slice(0, n.invocations); cur.ch.langs = cur.ch.langs.slice(0, n.langs);
+      if (!n.fightingStyle) cur.ch.fightingStyle = "";
+      const lim = R.spellLimits(cur);
+      if (lim) { cur.spells.cantrips = cur.spells.cantrips.slice(0, lim.cantrips); cur.spells.prepared = cur.spells.prepared.filter(k => (R.spell(k) || {}).lv <= lim.maxLv).slice(0, lim.prepared); }
+      else { cur.spells.cantrips = []; cur.spells.prepared = []; }
+      save(); render();
+    },
+    rollHp(v) { const c = R.cls(cur); cur.hp.rolls[v] = 1 + Math.floor(Math.random() * c.hd); save(); render(); },
     rollBio() { R.rollBionics(cur); syncCore(); save(); render(); },
     roll4d6() {
       cur.ab.rolled = [0, 1, 2, 3, 4, 5].map(() => { const d = [0, 0, 0, 0].map(() => 1 + Math.floor(Math.random() * 6)).sort((a, b) => b - a); return d[0] + d[1] + d[2]; });
@@ -681,7 +788,7 @@
     const t = e.target.closest("[data-act],[data-tab],[data-multi],[data-one]");
     if (!t || t.disabled) return;
     if (t.dataset.tab) { tab = t.dataset.tab; armed = ""; render(); window.scrollTo(0, 0); return; }
-    if (t.dataset.act) { const f = acts[t.dataset.act]; if (f) { if (!t.dataset.act.startsWith("del") && t.dataset.act !== "applyGear") armed = ""; f(t.dataset.v); } return; }
+    if (t.dataset.act) { const f = acts[t.dataset.act]; if (f) { if (!t.dataset.act.startsWith("del") && t.dataset.act !== "applyGear" && t.dataset.act !== "levelDown") armed = ""; f(t.dataset.v); } return; }
     if (t.dataset.multi && t.tagName !== "INPUT") { toggleMulti(t.dataset.multi, t.dataset.v, +t.dataset.max); return; }
     if (t.dataset.one && t.tagName !== "INPUT") { setOne(t.dataset.one, t.dataset.v, t.dataset.reset); }
   });
@@ -705,6 +812,7 @@
     if (t.dataset.one) { setOne(t.dataset.one, t.dataset.v, t.dataset.reset); return; }
     if (t.dataset.check) { setPath(cur, t.dataset.check, t.checked); save(); render(); return; }
     if (t.dataset.bio) { cur.sp.bio = cur.sp.bio || { rolled: {}, pick: {}, custom: "" }; cur.sp.bio.pick[t.dataset.bio] = t.value === "" ? "" : +t.value; if (t.dataset.bio === "core") syncCore(); save(); render(); return; }
+    if (t.dataset.asi) { const x = cur.asi[t.dataset.asi] = cur.asi[t.dataset.asi] || { mode: "asi" }; const arr = [(x.a || [])[0] || "", (x.a || [])[1] || ""]; arr[+t.dataset.i] = t.value; x.a = arr; save(); render(); return; }
     if (t.dataset.assign) { cur.ab.assign[t.dataset.assign] = t.value === "" ? "" : +t.value; save(); render(); return; }
     if (t.dataset.roll !== undefined) { const v = parseInt(t.value, 10); cur.ab.rolled[+t.dataset.roll] = isNaN(v) ? undefined : Math.max(3, Math.min(18, v)); cur.ab.rolled = Array.from({ length: 6 }, (_, i) => cur.ab.rolled[i]).filter(x => x !== undefined && x !== null); save(); render(); return; }
     if (t.dataset.set) { setPath(cur, t.dataset.set, t.dataset.num ? Math.max(0, parseInt(t.value, 10) || 0) : t.value); save(); if (pointerDown) deferRender = true; else render(); }
