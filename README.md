@@ -12,7 +12,11 @@ Characters are kept in the browser (localStorage). The version is in the page fo
 
 ## Serve it from your PC (like the VTT)
 
-Double-click `start.bat` (needs Python, same as the VTT). Players open `http://<your Hamachi IP>:8766/`. Only this PC and Hamachi addresses (25.x) are let in. If Windows asks, allow Python through the firewall; the VTT's firewall rule for 25.0.0.0/8 already covers it if it was made for Python and not just one port.
+Double-click `start.bat` (needs Python, same as the VTT). Players open `http://<your Hamachi IP>:8766/`. Only this PC and Hamachi addresses (25.x) are let in. Open the port for Hamachi once, in PowerShell as administrator:
+
+```
+New-NetFirewallRule -DisplayName "Fogwright Forge (Hamachi)" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8766 -RemoteAddress 25.0.0.0/8 -Profile Any
+```
 
 PT: faz duplo clique em `start.bat`; os jogadores abrem `http://<IP do Hamachi>:8766/`.
 
