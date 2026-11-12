@@ -270,7 +270,7 @@ window.SPECIES = [
    ]
   },
   "id": "warbred",
-  "lore": "*\"We were made for a war that ended before the sun was this colour. Nobody told our blood.\"*\n\nThe Warbred are big, tough people, usually six to seven feet tall, with thick grey-green or ash-coloured skin, heavy jaws and small tusks. A prior world bred them as soldiers. That world and its war are long gone, but the design is still there in every child: eyes made for fighting at night, a body that keeps going when it should fall, and a sudden surge of strength when things get bad.\n\nMost Warbred don't feel made for war. They're farmers, haulers, guards and smiths. But every one of them has felt the surge at least once, and knows what it was built for.",
+  "lore": "*\"We were made for a war that ended before the sun was this colour. Nobody told our blood.\"*\n\nThe Warbred are big, tough people, usually six to seven feet tall, with thick grey-green or ash-coloured skin and heavy jaws. A prior world bred them as soldiers. That world and its war are long gone, but the design is still there in every child: eyes made for fighting at night, a body that keeps going when it should fall, and a sudden surge of strength when things get bad.\n\nMost Warbred don't feel made for war. They're farmers, haulers, guards and smiths. But every one of them has felt the surge at least once, and knows what it was built for.",
   "traits": [
    {
     "n": "Adrenaline Rush",

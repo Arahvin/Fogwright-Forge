@@ -11,7 +11,7 @@ window.SPECIES_ICONS = {
   // Lightborn: a serene face with closed eyes, a mark on the brow, a halo of old light
   lightborn: `<path d="M22 26c0-8 4-12 10-12s10 4 10 12v10l-6 12h-8l-6-12z"/><path d="M14.5 34a20 20 0 0 1 35 0"/><path d="M9 20l-4-2M55 20l4-2M17 9l-2-3M47 9l2-3M32 2v2"/><path d="M32 19l2 2-2 2-2-2z"/><path d="M25 30q2.5 2 5 0M34 30q2.5 2 5 0"/><path d="M32 31v6"/><path d="M30 42h4"/><path d="M28 48v10M36 48v10"/>`,
   // Ashmaw: horned, scaled head narrowing to a snout, crest, cheek frills, slit eyes
-  ashmaw: `<path d="M22 18h20l5 12-6 14-3 12H26l-3-12-6-14z"/><path d="M23 19Q13 14 9 2q8 7 19 14"/><path d="M41 19Q51 14 55 2q-8 7-19 14"/><path d="M27 18l5-7 5 7"/><path d="M32 11v19"/><path d="M20 25h9M44 25h-9"/><path d="M23 29l6 2.5M41 29l-6 2.5"/><path d="M17 30l-6 5 8 3M47 30l6 5-8 3"/><path d="M25 46h14"/><path d="M28 46l1 2.5M36 46l-1 2.5"/><path d="M29 51h1M34 51h1"/>`,
+  ashmaw: `<path d="M22 18h20l5 12-6 14-3 12H26l-3-12-6-14z"/><path d="M23 18l2-7 4 4 3-9 3 9 4-4 2 7"/><path d="M25 11l-5 7M39 11l5 7"/><path d="M32 6v24"/><path d="M20 25h9M44 25h-9"/><path d="M23 29l6 2.5M41 29l-6 2.5"/><path d="M17 30l-6 5 8 3M47 30l6 5-8 3"/><path d="M25 46h14"/><path d="M28 46l1 2.5M36 46l-1 2.5"/><path d="M29 51h1M34 51h1"/>`,
   // Stonebound: brow band with a mountain mark, heavy moustache, long braided beard with rings
   stonebound: `<path d="M18 30V18c0-8 6-12 14-12s14 4 14 12v12"/><path d="M18 20h28"/><path d="M26 16l4-5 2 2 2-2 4 5"/><path d="M23 25h5M36 25h5"/><path d="M32 22v8l-3 2"/><path d="M24 34q8-5 16 0"/><path d="M18 30l4 14 6 8 4 8 4-8 6-8 4-14"/><path d="M32 38v20"/><path d="M29 44h6M29 50h6"/><path d="M24 38l3 8M40 38l-3 8"/>`,
   // Tinkerfolk: round head, large angled ears, goggles with a loupe, tufts of hair
