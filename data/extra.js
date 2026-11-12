@@ -115,13 +115,16 @@ window.EXTRA = {
     warden: { n: "Warden", t: "Proficiency with Martial weapons and training with Medium armor." }
   },
 
-  // Ninth World names for the 2024 languages (Lantern Marches world/languages.md). [name, 5e language]
+  // Ninth World names for the 2024 languages (Lantern Marches world/languages.md). [name, 5e language, who speaks it]
   // Rule unchanged: the Truth (Common) + two standard languages; rare ones only from features or the GM.
   languages: {
-    standard: [["Battle-sign", "Common Sign Language"], ["Marcher speech", "Halfling"], ["Southern trade-cant", "Goblin"], ["Drill", "Orc"],
-      ["Hall-tongue", "Elvish"], ["Ashtongue", "Draconic"], ["Holdspeech", "Dwarvish"], ["Tick", "Gnomish"], ["Reedtalk", "Giant"]],
-    rare: [["Lamp-liturgy", "Celestial"], ["Machine-speech", "Deep Speech"], ["Mender-cant", "Infernal"], ["Void-whisper", "Abyssal"],
-      ["Weather-speech", "Primordial"], ["Greensong", "Sylvan"], ["Root-sign", "Druidic"], ["Gutter-cant", "Thieves' Cant"], ["Lowtongue", "Undercommon"]],
+    standard: [["Battle-sign", "Common Sign Language", "soldiers and scouts"], ["Marcher speech", "Halfling", "Marches village folk"],
+      ["Southern trade-cant", "Goblin", "southern merchants"], ["Drill", "Orc", "Warbred"], ["Hall-tongue", "Elvish", "Firstborn"],
+      ["Ashtongue", "Draconic", "Ashmaw"], ["Holdspeech", "Dwarvish", "Stonebound"], ["Tick", "Gnomish", "Tinkerfolk"], ["Reedtalk", "Giant", "marsh folk"]],
+    rare: [["Lamp-liturgy", "Celestial", "Lamplighters"], ["Machine-speech", "Deep Speech", "old numenera"], ["Mender-cant", "Infernal", "Grafted menders"],
+      ["Void-whisper", "Abyssal", "visitants"], ["Weather-speech", "Primordial", "old weather engines"], ["Greensong", "Sylvan", "engineered plants and beasts"],
+      ["Root-sign", "Druidic", "keepers of the wild"], ["Gutter-cant", "Thieves' Cant", "thieves and smugglers"], ["Lowtongue", "Undercommon", "the deep places"]],
+    commonWho: "almost everyone",
     common: "the Truth"
   },
 

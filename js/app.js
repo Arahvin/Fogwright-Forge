@@ -1,7 +1,7 @@
 // Fogwright Forge: the builder screens.
 (function () {
   "use strict";
-  const VERSION = "v21";
+  const VERSION = "v22";
   const R = window.Rules, SRD = window.SRD, X = window.EXTRA;
   const KEY = "forge-chars-v1", PREF = "forge-prefs-v1";
 
@@ -562,15 +562,15 @@
 
   function stepDetails() {
     const ch = cur, L = X.languages;
-    const langs = L.standard.map(([n, dnd]) => [n, n + " (" + dnd + ")"]);
-    const rareOn = ch.ch.langs.filter(v => L.rare.some(r => r[0] === v)).map(v => [v, v + " (rare)"]);
+    const langs = L.standard.map(([n, , who]) => [n, n + " (" + T(who) + ")"]);
+    const rareOn = ch.ch.langs.filter(v => L.rare.some(r => r[0] === v)).map(v => [v, v + " (" + T("rare") + ")"]);
     let h = '<div class="panel"><h2>' + T("Details") + '</h2><div class="form">' +
       "<span>" + T("Character name") + '</span><div class="row"><input data-set="name" value="' + attr(ch.name) + '" style="flex:2;min-width:140px"><label class="row" style="gap:6px;flex:1;min-width:140px">' + T("Nickname") + ' <input data-set="nick" value="' + attr(ch.nick || "") + '" style="flex:1;min-width:0"></label></div>' +
       "<span>" + T("Player (VTT name)") + '</span><div><input data-set="player" value="' + attr(ch.player) + '"><div class="small muted">The name the player logs in with in Fogwright VTT, so the sheet is theirs.</div></div>' +
       "</div>";
     const nl = R.cls(ch) ? R.counts(ch).langs : 2;
-    h += '<div class="choice"><h4>' + T("Languages") + " " + status(ch.ch.langs.filter(Boolean).length, nl) + '</h4><p class="small muted">' + esc(L.common) + " (Common) + " + nl + ". " + T("Choose") + " " + nl + (nl > 2 ? " (2 + Deft Explorer)" : "") + ".</p>" + chips("ch.langs", langs.concat(rareOn), nl) +
-      '<p class="small muted">' + T("Rare languages") + ": " + esc(L.rare.map(r => r[0] + " (" + r[1] + ")").join(", ")) + ". " + T("rareHelp") + "</p></div>";
+    h += '<div class="choice"><h4>' + T("Languages") + " " + status(ch.ch.langs.filter(Boolean).length, nl) + '</h4><p class="small muted">' + esc(L.common) + " (" + T(L.commonWho) + ") + " + nl + ". " + T("Choose") + " " + nl + (nl > 2 ? " (2 + Deft Explorer)" : "") + ".</p>" + chips("ch.langs", langs.concat(rareOn), nl) +
+      '<p class="small muted">' + T("Rare languages") + ": " + esc(L.rare.map(r => r[0] + " (" + T(r[2]) + ")").join(", ")) + ". " + T("rareHelp") + "</p></div>";
     ["appearance", "personality", "backstory", "notes"].forEach(k => {
       h += '<div class="choice"><h4>' + T(R.cap(k)) + '</h4><textarea data-set="det.' + k + '">' + esc(ch.det[k] || "") + "</textarea></div>";
     });
