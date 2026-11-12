@@ -1,7 +1,7 @@
 // Fogwright Forge: the builder screens.
 (function () {
   "use strict";
-  const VERSION = "v7";
+  const VERSION = "v8";
   const R = window.Rules, SRD = window.SRD, X = window.EXTRA;
   const KEY = "forge-chars-v1", PREF = "forge-prefs-v1";
 
@@ -99,7 +99,7 @@
       options.map(o => { const [v, l] = Array.isArray(o) ? o : [o, o]; return '<option value="' + attr(v) + '"' + (v === val ? " selected" : "") + ">" + esc(l) + "</option>"; }).join("") + "</select>";
   }
   const status = (have, need) => have >= need ? '<span class="done">✓ ' + T("Done") + "</span>" : '<span class="need">' + (need - have) + " " + T("to choose") + "</span>";
-  const glyph = (id, big) => window.SPECIES_ICONS && SPECIES_ICONS[id] ? '<svg class="glyph sp-' + id + (big ? " big" : "") + '" viewBox="0 0 48 48" aria-hidden="true">' + SPECIES_ICONS[id] + "</svg>" : "";
+  const glyph = (id, big) => window.SPECIES_ICONS && SPECIES_ICONS[id] ? '<svg class="glyph sp-' + id + (big ? " big" : "") + '" viewBox="0 0 64 64" aria-hidden="true">' + SPECIES_ICONS[id] + "</svg>" : "";
   const catItems = cat => ((SRD.cats[cat] || {}).items || []).map(id => [id, R.itemName(id)]);
 
   // ---------------------------------------------------------------- what each step still needs
