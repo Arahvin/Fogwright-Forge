@@ -5,7 +5,7 @@ window.SPECIES_ICONS = {
   // Grafted: half flesh, half riveted plating with a lens, cables at the neck
   grafted: `<path d="M32 8c-10 0-16 7-16 18v12l8 12 8 4"/><path d="M32 8h10l6 8v22l-6 10-10 6"/><path d="M32 8v46"/><path d="M21 27l6-1M22 31h6"/><path d="M27 44h5"/><circle cx="40" cy="29" r="4.5"/><circle cx="40" cy="29" r="1.5"/><path d="M32 20h16M32 38h10l6-4"/><circle cx="36" cy="14" r=".8"/><circle cx="44" cy="14" r=".8"/><circle cx="36" cy="46" r=".8"/><path d="M27 52v8M36 54v6M41 50v8"/>`,
   // Warbred: broad angular head, crest, heavy brow, tusks, a scar across the eye
-  warbred: `<path d="M18 12h28l6 10v14l-8 16H20l-8-16V22z"/><path d="M28 12l2-6h4l2 6"/><path d="M16 24l12 3 4-2 4 2 12-3"/><path d="M21 31h5M38 31h5"/><path d="M32 30v7l-3 2M32 37l3 2"/><path d="M21 46h22"/><path d="M24 46q-5-4-3-13 4 5 6 13"/><path d="M40 46q5-4 3-13-4 5-6 13"/><path d="M39 19l5 16"/><path d="M26 52l2 4h8l2-4"/>`,
+  warbred: `<path d="M18 12h28l6 10v14l-8 16H20l-8-16V22z"/><path d="M28 12l2-6h4l2 6"/><path d="M16 24l12 3 4-2 4 2 12-3"/><path d="M21 31h5M38 31h5"/><path d="M32 30v7l-3 2M32 37l3 2"/><path d="M21 46h22"/><path d="M39 19l5 16"/><path d="M26 52l2 4h8l2-4"/>`,
   // Firstborn: long narrow face, circlet with a gem, hair to the shoulders, small round ears, a fixed stare
   firstborn: `<path d="M32 12c-7 0-10 6-10 14 0 12 5 24 10 28 5-4 10-16 10-28 0-8-3-14-10-14z"/><path d="M32 6c-12 0-16 8-16 20l-2 32M32 6c12 0 16 8 16 20l2 32"/><path d="M22 22q10-4 20 0"/><path d="M32 18l2 3-2 3-2-3z"/><path d="M22 30c-3 0-3 6 0 6M42 30c3 0 3 6 0 6"/><circle cx="27" cy="31" r="2.2"/><circle cx="37" cy="31" r="2.2"/><path d="M32 34v6"/><path d="M30 46h4"/>`,
   // Lightborn: a serene face with closed eyes, a mark on the brow, a halo of old light
