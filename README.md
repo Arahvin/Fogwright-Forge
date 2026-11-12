@@ -4,7 +4,7 @@ A character builder for D&D 2024 (SRD 5.2) in the Ninth World, in the spirit of 
 
 - **Classes, spells, gear:** the 12 SRD 5.2 classes, their level 1 choices, spells and starting equipment.
 - **Species:** the Ninth World species of our campaign (Humans, Grafted, Warbred, Firstborn, Lightborn, Ashmaw, Stonebound, Tinkerfolk), 2024 rules unchanged. No Goliaths or Halflings.
-- **Artificer:** the *Eberron: Forge of the Artificer* (2025) version (`data/artificer.js`): class features and magic item plan tables from its final playtest (Unearthed Arcana 2025 "Eberron Updates"), with the book's level 6+ plan changes; the Cartographer subclass from that playtest; the Alchemist, Armorer, Artillerist and Battle Smith from Unearthed Arcana 2024. Only numbers and short summaries in our own words; the full text is in the book.
+- **Artificer:** the *Eberron: Forge of the Artificer* (2025) version (`data/artificer.js`): class features, magic item plan tables, spell list and all five subclasses (Alchemist, Armorer, Artillerist, Battle Smith, Cartographer), checked against the book. Only numbers and short summaries in our own words; the full text is in the book.
 - **Backgrounds:** all 16 from 2024. The 4 SRD ones have full text; the 12 Player's Handbook ones only carry their numbers.
 - **House rules:** shins for money, the cypher limit (PB + 1), GM intrusions, and the Glaive / Nano / Jack / Tender labels.
 - **Export:** the Sheet tab's *Export for Fogwright VTT* writes a `.json` that the VTT imports as-is (GM: Sheets tab → Import). *Save Forge file* keeps the full character, to back up or move to another computer.

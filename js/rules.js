@@ -3,7 +3,7 @@
 (function () {
   "use strict";
   const SRD = window.SRD, X = window.EXTRA;
-  // the Artificer (UA 2024, data/artificer.js) joins the SRD classes
+  // the Artificer (Forge of the Artificer, data/artificer.js) joins the SRD classes
   const A = window.ARTIFICER;
   if (A && !SRD.classes.artificer) {
     SRD.classes.artificer = A.cls;
@@ -537,7 +537,7 @@
         features.push({ name: f.n, text, uses: n, recharge: rc, src: c.n + " " + lv });
       });
       const sub = SRD.subclasses[(ch.classes[0] || {}).sub];
-      if (sub) sub.f.filter(f => f.lv <= clv).forEach(f => features.push({ name: f.n, text: f.t, uses: 0, recharge: "", src: sub.n + " " + f.lv }));
+      if (sub) sub.f.filter(f => f.lv <= clv).forEach(f => { const [n, rc] = usesOf(f.u); features.push({ name: f.n, text: f.t, uses: n, recharge: rc, src: sub.n + " " + f.lv }); });
       { const pl = plans(ch); if (pl) pl.chosen.filter(p => p.spell && spell(p.spell)).forEach(p => features.push({ name: (p.item || "Spellwrought Tattoo").slice(0, 60), text: "Spellwrought Tattoo holding **" + spell(p.spell).n + "**. Cast it once with no spell slot (the tattoo's own numbers from the DMG table, not yours), then it is used up. Replicate Magic Item can make it again after a Long Rest (it counts as one of the items you make).", uses: 1, recharge: "long", src: "Replicate Magic Item" })); }
       Object.keys(ch.lvNotes || {}).filter(k => +k <= clv && ch.lvNotes[k]).sort((a, b) => a - b).forEach(k => features.push({ name: "Level " + k + " choices", text: ch.lvNotes[k], uses: 0, recharge: "", src: c.n + " " + k }));
       (ch.ch.invocations || []).forEach(k => { const v = SRD.invocations[k]; if (v) features.push({ name: "Invocation: " + v.n, text: v.t, uses: 0, recharge: "", src: "Warlock" }); });
