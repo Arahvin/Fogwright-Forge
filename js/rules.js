@@ -122,6 +122,45 @@
     return { known: cs.plans_known + armor, items: cs.magic_items + armor, attune: lv >= 18 ? 6 : lv >= 14 ? 5 : lv >= 10 ? 4 : 3, armor: !!armor,
       tiers, all, chosen, rare: 0 };
   }
+  // Magic on an inventory item: a plain +N, or an Artificer plan the item was made from.
+  // kind: w = weapon (needs: ranged/thrown/ammo), a = body armor, s = shield. b = bonus to attack+damage or AC.
+  const PLAN_FX = {
+    "weapon-1": { k: "w", b: 1 }, "weapon-2": { k: "w", b: 2 },
+    "repeating-shot": { k: "w", b: 1, need: "ammunition", ranged: true, note: "Repeating Shot: ignores Loading, makes its own ammunition" },
+    "returning-weapon": { k: "w", b: 1, need: "thrown", note: "Returning Weapon: flies back to your hand after a ranged attack" },
+    "dazzling-weapon": { k: "w", b: 1, note: "Dazzling Weapon: light at will; 4 charges, Reaction when hit: attacker DC 15 Con save or Blinded" },
+    "dagger-of-venom": { k: "w", b: 1, note: "Dagger of Venom: once per dawn, coat it in poison" },
+    "weapon-of-warning": { k: "w", b: 0, note: "Weapon of Warning: Advantage on Initiative; you and allies within 30 ft can't be surprised" },
+    "flame-tongue": { k: "w", b: 0, note: "Flame Tongue: Bonus Action to ignite, +2d6 Fire while lit" },
+    "armor-1": { k: "a", b: 1 }, "armor-2": { k: "a", b: 2 }, "elven-chain": { k: "a", b: 1, note: "Elven Chain" },
+    "armor-of-resistance": { k: "a", b: 0, note: "Armor of Resistance: Resistance to one damage type" },
+    "shield-1": { k: "s", b: 1 }, "shield-2": { k: "s", b: 2 },
+    "repulsion-shield": { k: "s", b: 1, note: "Repulsion Shield: 4 charges, Reaction push a melee attacker 15 ft" },
+    "sentinel-shield": { k: "s", b: 0, note: "Sentinel Shield: Advantage on Initiative and Wisdom (Perception)" },
+    "arrow-catching-shield": { k: "s", b: 0, note: "Arrow-Catching Shield: +2 AC against ranged attacks; Reaction to take a ranged attack meant for someone near you" }
+  };
+  const kindOf = it => !it ? "" : it.dmg ? "w" : it.ac === undefined ? "" : it.cats.includes("shields") ? "s" : "a";
+  // the magic options an item can take: [value, label]
+  function magicOptions(ch, ref) {
+    const it = item(ref), k = kindOf(it);
+    if (!k) return [];
+    const out = [["+1", "+1"], ["+2", "+2"], ["+3", "+3"]];
+    const pl = plans(ch);
+    if (pl) pl.chosen.forEach(p => { const fx = PLAN_FX[p.id];
+      if (fx && fx.k === k && (!fx.need || it.props.includes(fx.need))) out.push(["plan:" + p.id, p.n]); });
+    return out;
+  }
+  // what the magic does: {b, label, note, off}
+  function magicOf(ch, i) {
+    const v = i.magic || "", it = item(i.ref);
+    if (!v || !it) return { b: 0, label: "", note: "" };
+    if (/^\+\d$/.test(v)) return { b: +v.slice(1), label: v, note: "" };
+    const id = v.slice(5), fx = PLAN_FX[id], pl = plans(ch);
+    if (!fx) return { b: 0, label: "", note: "" };
+    const name = (pl && pl.all[id] || {}).n || id;
+    const off = !pl || !pl.chosen.some(p => p.id === id);
+    return { b: off ? 0 : fx.b, label: !fx.note && fx.b ? "+" + fx.b : name, note: fx.note || "", ranged: fx.ranged, noLoad: id === "repeating-shot", off };
+  }
   // a plan that holds a spell (Spellwrought Tattoo): the spell levels its open plan allows
   const tattooLevels = p => !(p.tattoo || /tattoo/i.test(p.item || "")) ? null : p.id === "common" ? [0, 1] : p.id === "uncommon-w" ? [2] : p.id === "rare-w" ? [3, 4, 5] : null;
   // plans saved with the UA 2024 tables move to the Forge of the Artificer ones
@@ -445,18 +484,22 @@
     // armor class
     const worn = ch.items.filter(i => i.equipped && item(i.ref) && item(i.ref).ac !== undefined);
     const body = worn.map(i => item(i.ref)).filter(it => !it.cats.includes("shields")).sort((a, b) => b.ac - a.ac)[0];
-    const shield = worn.some(i => item(i.ref).cats.includes("shields"));
+    const shieldI = worn.find(i => item(i.ref).cats.includes("shields")), shield = !!shieldI;
+    const bodyI = body && worn.find(i => item(i.ref) === body);
     let ac, acNote;
     if (body) {
       ac = body.ac + (body.dex ? (body.max != null ? Math.min(body.max, m.dex) : m.dex) : 0);
       acNote = body.n;
-      const kind = body.cats.find(x => /^(light|medium|heavy)-armor$/.test(x));
+      const mg = magicOf(ch, bodyI);
+      if (mg.b) { ac += mg.b; acNote += " " + (mg.label.startsWith("+") ? mg.label : "(" + mg.label + ")"); }
+      if (mg.off) warn.push(body.n + ": you no longer know the " + mg.label + " plan.");      const kind = body.cats.find(x => /^(light|medium|heavy)-armor$/.test(x));
       if (kind && !t.armor.has(kind.replace("-armor", ""))) warn.push("Not trained with " + body.n + ": Disadvantage on Str/Dex tests, no spells.");
       if (body.strmin && sc.str < body.strmin) warn.push(body.n + " needs Strength " + body.strmin + ": Speed −10 ft.");
     } else if (id === "barbarian") { ac = 10 + m.dex + m.con; acNote = "Unarmored Defense"; }
     else if (id === "monk" && !shield) { ac = 10 + m.dex + m.wis; acNote = "Unarmored Defense"; }
     else { ac = 10 + m.dex; acNote = "No armor"; }
-    if (shield) { ac += 2; acNote += " + shield"; if (!t.armor.has("shield")) warn.push("Not trained with shields."); }
+    if (shield) { const mg = magicOf(ch, shieldI); ac += 2 + mg.b; acNote += " + shield" + (mg.b ? " +" + mg.b : "");
+      if (mg.off) warn.push("Shield: you no longer know the " + mg.label + " plan."); if (!t.armor.has("shield")) warn.push("Not trained with shields."); }
     if (body && ch.ch.fightingStyle === "defense") { ac += 1; acNote += " + Defense"; }
 
     // speed, senses
@@ -561,25 +604,30 @@
     const seen = new Set();
     ch.items.forEach(i => {
       const it = item(i.ref);
-      if (!it || !it.dmg || seen.has(i.ref)) return;
-      seen.add(i.ref);
+      if (!it || !it.dmg || seen.has(i.ref + "|" + (i.magic || ""))) return;
+      seen.add(i.ref + "|" + (i.magic || ""));
+      const mg = magicOf(ch, i);
       const ranged = it.cats.includes("ranged-weapons");
       const finesse = it.props.includes("finesse");
       const monkW = martialArts && (it.cats.includes("simple-melee-weapons") || (it.cats.includes("martial-melee-weapons") && it.props.includes("light")));
       const am = ranged ? m.dex : (finesse || monkW ? Math.max(m.str, m.dex) : m.str);
       const prof = weaponProficient(ch, i.ref, t);
+      const notes = [];
       let bonus = am + (prof ? pb : 0) + (ranged && ch.ch.fightingStyle === "archery" ? 2 : 0);
       let die = it.dmg;
+      const mb = mg.ranged && !ranged ? 0 : mg.b;
+      bonus += mb;
+      if (mg.off) warn.push(it.n + ": you no longer know the " + mg.label + " plan.");
+      if (mg.note) notes.push(mg.note);
       if (monkW && +die.split("d")[1] < martialArts) die = "1d" + martialArts;
-      const notes = [];
       if (it.two) notes.push("Versatile " + it.two);
       if (it.props.includes("thrown") && it.thr && it.thr.normal) notes.push("Thrown " + it.thr.normal + "/" + it.thr.long + " ft");
       if (ch.ch.mastery.includes(i.ref) && it.mastery) notes.push("Mastery: " + ((SRD.mastery[it.mastery] || {}).n || it.mastery));
-      const props = it.props.filter(p => !["versatile", "thrown", "ammunition", "monk"].includes(p)).map(p => cap(p.replace(/-/g, " ")));
+      const props = it.props.filter(p => !["versatile", "thrown", "ammunition", "monk"].concat(mg.noLoad && !mg.off ? ["loading"] : []).includes(p)).map(p => cap(p.replace(/-/g, " ")));
       if (props.length) notes.push(props.join(", "));
       if (!prof) notes.push("Not proficient");
       const range = ranged ? it.rng.normal + "/" + it.rng.long + " ft" : (it.props.includes("reach") ? "10 ft" : "5 ft");
-      attacks.push({ name: it.n, bonus: sign(bonus), damage: die + (am ? sign(am) : "") + " " + it.dt.toLowerCase(), range, notes: notes.join("; ") });
+      attacks.push({ name: it.n + (mg.label ? (mg.label.startsWith("+") ? " " + mg.label : " (" + mg.label + ")") : ""), bonus: sign(bonus), damage: die + (am + mb ? sign(am + mb) : "") + " " + it.dt.toLowerCase(), range, notes: notes.join("; ") });
     });
     {
       let die = "1", am = m.str;
@@ -656,7 +704,7 @@
       det.notes ? "## Notes\n" + det.notes : "",
       "_Made with Fogwright Forge " + (version || "") + "._"
     ].filter(Boolean).join("\n\n");
-    const items = ch.items.map(i => ({ name: i.name, qty: i.qty, equipped: !!i.equipped, cat: i.cat || "", notes: i.notes || "" }));
+    const items = ch.items.map(i => ({ name: i.name + (i.magic ? (m => m.label.startsWith("+") ? " " + m.label : " (" + m.label + ")")(magicOf(ch, i)) : ""), qty: i.qty, equipped: !!i.equipped, cat: i.cat || "", notes: i.notes || "" }));
     if (ch.gp) items.push({ name: "Shins", qty: ch.gp, equipped: false, cat: "Money", notes: "" });
     return {
       kind: "pc", name: fullName(ch).slice(0, 60), owner: (ch.player || "").slice(0, 40), level: s.level, cr: "",
@@ -677,7 +725,7 @@
 
   window.Rules = {
     ABILS, ABIL_NAMES, SKILLS, SKILL_NAMES, SPECIES, STANDARD, POINT_COST, mod, sign, pbOf, cap,
-    blank, fullName, clvOf, asiLevels, subLevel, counts, plans, planName, tattooLevels, migratePlans, levelFeats, featPlus, asiBonus, hasFightingStyle, BIO_SLOTS, bionics, rollBionics, cls, clsId, level, species, line, background, feat, feats, spell, item, itemName, levelRow,
+    blank, fullName, clvOf, asiLevels, subLevel, counts, plans, planName, magicOptions, magicOf, tattooLevels, migratePlans, levelFeats, featPlus, asiBonus, hasFightingStyle, BIO_SLOTS, bionics, rollBionics, cls, clsId, level, species, line, background, feat, feats, spell, item, itemName, levelRow,
     baseScores, pointsSpent, bgBonus, scores, training, weaponProficient, skillProfs, spellList, spellLimits,
     classSpells, startingGear, expandEquip, compute, toVTT
   };

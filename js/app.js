@@ -1,7 +1,7 @@
 // Fogwright Forge: the builder screens.
 (function () {
   "use strict";
-  const VERSION = "v22";
+  const VERSION = "v23";
   const R = window.Rules, SRD = window.SRD, X = window.EXTRA;
   const KEY = "forge-chars-v1", PREF = "forge-prefs-v1";
 
@@ -527,10 +527,10 @@
     h += '<div class="row" style="margin-top:12px"><button class="primary" data-act="applyGear"' + (ch.equip.cls || ch.equip.bg ? "" : " disabled") + ">" +
       (armed === "applyGear" ? T("Click again to replace the inventory") : T("Apply starting gear")) + "</button></div></div>";
 
-    h += '<div class="panel"><h2>' + T("Inventory") + '</h2><div class="row" style="margin-bottom:8px"><label>' + T("Shins") + ' <input type="number" min="0" style="width:100px" data-set="gp" data-num="1" value="' + (ch.gp || 0) + '"></label></div>';
-    h += '<div class="tablewrap"><table class="grid"><tr><th>' + T("Name") + "</th><th>" + T("Qty") + "</th><th>" + T("Worn") + "</th><th>" + T("Notes") + "</th><th></th></tr>" +
+    h += '<div class="panel"><h2>' + T("Inventory") + '</h2>' + '<p class="small muted">' + T(R.plans(ch) ? "magicHelpArt" : "magicHelp") + "</p>" + '<div class="row" style="margin-bottom:8px"><label>' + T("Shins") + ' <input type="number" min="0" style="width:100px" data-set="gp" data-num="1" value="' + (ch.gp || 0) + '"></label></div>';
+    h += '<div class="tablewrap"><table class="grid"><tr><th>' + T("Name") + "</th><th>" + T("Qty") + "</th><th>" + T("Worn") + "</th><th>" + T("Magic") + "</th><th>" + T("Notes") + "</th><th></th></tr>" +
       ch.items.map((it, i) => "<tr><td>" + esc(it.name) + ' <span class="badge">' + esc(it.cat || "") + '</span></td><td><input type="number" min="0" style="width:64px" data-set="items.' + i + '.qty" data-num="1" value="' + it.qty + '"></td>' +
-        '<td><input type="checkbox" data-check="items.' + i + '.equipped"' + (it.equipped ? " checked" : "") + '></td><td><input style="width:100%" data-set="items.' + i + '.notes" value="' + attr(it.notes || "") + '"></td>' +
+        '<td><input type="checkbox" data-check="items.' + i + '.equipped"' + (it.equipped ? " checked" : "") + '></td><td>' + (R.magicOptions(ch, it.ref).length ? select("items." + i + ".magic", R.magicOptions(ch, it.ref)) : "") + '</td><td><input style="width:100%" data-set="items.' + i + '.notes" value="' + attr(it.notes || "") + '"></td>' +
         '<td><button class="small danger" data-act="delItem" data-v="' + i + '">' + T("Remove") + "</button></td></tr>").join("") + "</table></div>";
     const groups = {};
     Object.keys(SRD.equipment).forEach(k => { const it = SRD.equipment[k]; const g = it.dmg ? "Weapons" : it.ac !== undefined ? "Armor" : (it.cats || []).includes("tools") ? "Tools" : "Gear"; (groups[g] = groups[g] || []).push(k); });
