@@ -10,6 +10,12 @@ A character builder for D&D 2024 (SRD 5.2) in the Ninth World, in the spirit of 
 
 Characters are kept in the browser (localStorage). The version is in the page footer.
 
+## Serve it from your PC (like the VTT)
+
+Double-click `start.bat` (needs Python, same as the VTT). Players open `http://<your Hamachi IP>:8766/`. Only this PC and Hamachi addresses (25.x) are let in. If Windows asks, allow Python through the firewall; the VTT's firewall rule for 25.0.0.0/8 already covers it if it was made for Python and not just one port.
+
+PT: faz duplo clique em `start.bat`; os jogadores abrem `http://<IP do Hamachi>:8766/`.
+
 ## PT
 
 Construtor de personagens para D&D 2024 no Nono Mundo. Abre o `index.html` (ou o link do GitHub Pages), cria a personagem e, no separador *Ficha*, carrega em *Exportar para o Fogwright VTT*. No VTT, o Mestre importa esse `.json` no separador Fichas.
